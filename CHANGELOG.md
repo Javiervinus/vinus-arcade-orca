@@ -2,7 +2,7 @@
 
 What changes in each version of Vinus Arcade. Versions follow [semantic versioning](https://semver.org).
 
-## 0.1.0 (not released yet)
+## 0.1.0 (2026-11-12)
 
 The first version.
 
