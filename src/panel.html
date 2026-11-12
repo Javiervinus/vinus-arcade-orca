@@ -1,0 +1,517 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        /* The arcade's own colours, the same in both Orca themes: its games are worlds at dusk. */
+        --arcade-ink: #ffffff;
+        --arcade-ink-soft: #c9d2f5;
+        --arcade-gold: #ffd166;
+        --arcade-gold-edge: #b9812f;
+        --arcade-night: #1d2540;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        overflow: hidden;
+        background: var(--orca-background);
+        font: 12px/1.4 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      #stage {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        outline: none;
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      #game {
+        display: block;
+        image-rendering: pixelated;
+      }
+
+      #card {
+        position: absolute;
+        top: 56%;
+        left: 50%;
+        transform: translateX(-50%);
+        box-sizing: border-box;
+        width: max-content;
+        max-width: calc(100% - 24px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 14px;
+        border: 1px solid color-mix(in srgb, var(--arcade-ink) 16%, transparent);
+        border-radius: 6px;
+        background: color-mix(in srgb, var(--arcade-night) 84%, transparent);
+        color: var(--arcade-ink);
+        text-align: center;
+        pointer-events: none;
+      }
+      /* A run that ended as the new best: the card wears gold. */
+      #card.record {
+        border-color: var(--arcade-gold);
+        box-shadow: 0 0 18px color-mix(in srgb, var(--arcade-gold) 45%, transparent);
+        animation: glow 1.4s ease-in-out infinite alternate;
+      }
+      #card.record #card-title {
+        color: var(--arcade-gold);
+        font-size: 34px;
+        line-height: 1;
+        letter-spacing: 0.04em;
+      }
+      @keyframes glow {
+        to {
+          box-shadow: 0 0 26px color-mix(in srgb, var(--arcade-gold) 70%, transparent);
+        }
+      }
+      /* Whose arcade this is: small, above the name of the game. */
+      #card-brand {
+        margin: 0;
+        color: var(--arcade-ink-soft);
+        font-size: 10px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+      }
+      #card-title {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      #card-note {
+        margin: 0;
+        color: var(--arcade-gold);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      #card-sub {
+        margin: 0;
+        color: var(--arcade-ink-soft);
+      }
+      #card-hint {
+        margin: 0;
+        animation: blink 1.6s steps(2, jump-none) infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0.45;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #card-hint,
+        #card.record {
+          animation: none;
+        }
+      }
+
+      #card-news {
+        margin: 0;
+        max-width: 240px;
+        color: var(--arcade-gold);
+      }
+
+      #card-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin-top: 4px;
+        pointer-events: auto;
+      }
+      /* The way to the characters shows the one in use, and the coins there are to spend. */
+      #wardrobe-open {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 10px 6px 6px;
+        text-align: left;
+      }
+      #wardrobe-preview {
+        box-sizing: content-box;
+        padding: 5px 6px;
+        border-radius: 3px;
+        background: linear-gradient(#303d7d, #7577b8);
+        image-rendering: pixelated;
+      }
+      #wardrobe-text {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      #wardrobe-label {
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      #wardrobe-arrow {
+        width: 6px;
+        height: 6px;
+        border-top: 2px solid var(--arcade-ink-soft);
+        border-right: 2px solid var(--arcade-ink-soft);
+        transform: rotate(45deg);
+      }
+      button.toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+      }
+      button.toggle .glyph {
+        display: flex;
+      }
+      button.toggle[aria-pressed='false'] {
+        color: var(--arcade-ink-soft);
+      }
+      button.toggle[aria-pressed='false'] .glyph {
+        opacity: 0.7;
+      }
+      button.plate {
+        min-height: 30px;
+        padding: 0 10px;
+        border: 1px solid color-mix(in srgb, var(--arcade-ink) 28%, transparent);
+        border-radius: 4px;
+        background: color-mix(in srgb, var(--arcade-night) 70%, transparent);
+        color: var(--arcade-ink);
+        font: inherit;
+        cursor: pointer;
+      }
+      button.plate:hover {
+        border-color: color-mix(in srgb, var(--arcade-ink) 55%, transparent);
+        background: color-mix(in srgb, var(--arcade-ink) 10%, var(--arcade-night));
+      }
+      button.plate:focus-visible,
+      button.tile:focus-visible {
+        outline: 2px solid var(--arcade-gold);
+        outline-offset: 1px;
+      }
+
+      /* The window where coins are spent: like the settings, as big as what it holds, in the
+         middle of the room, which waits dimmed behind it. */
+      #wardrobe {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        box-sizing: border-box;
+        width: min(440px, calc(100% - 24px));
+        max-height: calc(100% - 24px);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid color-mix(in srgb, var(--arcade-ink) 16%, transparent);
+        border-radius: 6px;
+        background: var(--arcade-night);
+        box-shadow: 0 0 0 200vmax color-mix(in srgb, var(--arcade-night) 72%, transparent);
+        color: var(--arcade-ink);
+        cursor: default;
+      }
+      #wardrobe-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      #wardrobe p {
+        margin: 0;
+      }
+      #wardrobe-title,
+      #accessories-title {
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      #wardrobe-coins,
+      #wardrobe-wallet,
+      .tile-price.coins {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--arcade-gold);
+      }
+      #wardrobe-coins::before,
+      #wardrobe-wallet::before,
+      .tile-price.coins::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--arcade-gold);
+        box-shadow: inset -2px -2px 0 var(--arcade-gold-edge);
+      }
+      #wardrobe-body {
+        flex: 0 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+        gap: 6px;
+      }
+      button.tile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        min-height: 84px;
+        padding: 8px 4px 6px;
+        border: 1px solid color-mix(in srgb, var(--arcade-ink) 22%, transparent);
+        border-radius: 4px;
+        background: color-mix(in srgb, var(--arcade-ink) 6%, transparent);
+        color: var(--arcade-ink);
+        font: inherit;
+        cursor: pointer;
+      }
+      button.tile canvas {
+        image-rendering: pixelated;
+      }
+      button.tile[aria-pressed='true'] {
+        border-color: var(--arcade-gold);
+        background: color-mix(in srgb, var(--arcade-gold) 14%, transparent);
+      }
+      button.tile.locked canvas {
+        opacity: 0.55;
+      }
+      button.tile.armed {
+        border-style: dashed;
+        border-color: var(--arcade-gold);
+      }
+      button.tile.armed canvas {
+        opacity: 1;
+      }
+      .tile-price {
+        min-height: 1.4em;
+        color: var(--arcade-ink-soft);
+      }
+      #wardrobe-how {
+        color: var(--arcade-ink-soft);
+      }
+
+      /* The window of the settings: as big as what it holds, in the middle of the room, which
+         dims behind it. */
+      .sheet {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        box-sizing: border-box;
+        width: min(320px, calc(100% - 24px));
+        max-height: calc(100% - 24px);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid color-mix(in srgb, var(--arcade-ink) 16%, transparent);
+        border-radius: 6px;
+        background: var(--arcade-night);
+        box-shadow: 0 0 0 200vmax color-mix(in srgb, var(--arcade-night) 72%, transparent);
+        color: var(--arcade-ink);
+        cursor: default;
+      }
+      .sheet p {
+        margin: 0;
+      }
+      .sheet-title {
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      #options-list {
+        flex: 0 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      button.switch {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        min-height: 36px;
+        padding: 6px 8px 6px 10px;
+        border: 1px solid color-mix(in srgb, var(--arcade-ink) 22%, transparent);
+        border-radius: 4px;
+        background: color-mix(in srgb, var(--arcade-ink) 6%, transparent);
+        color: var(--arcade-ink);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      button.switch:focus-visible {
+        outline: 2px solid var(--arcade-gold);
+        outline-offset: 1px;
+      }
+      .switch-state {
+        flex: none;
+        min-width: 28px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        background: color-mix(in srgb, var(--arcade-ink) 14%, transparent);
+        color: var(--arcade-ink-soft);
+        text-align: center;
+      }
+      button.switch[aria-checked='true'] .switch-state {
+        background: var(--arcade-gold);
+        color: var(--arcade-night);
+        font-weight: 700;
+      }
+
+      /* What an agent says, in the game's own look: a character speaking at the foot of the
+         room, over the floor, so the wall and almost all of the space to fly in stay in sight. */
+      #notice {
+        position: absolute;
+        bottom: 8px;
+        left: 8px;
+        right: 8px;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 8px;
+        border: 2px solid var(--arcade-ink-soft);
+        box-shadow:
+          0 0 0 2px var(--arcade-night),
+          0 4px 0 2px color-mix(in srgb, var(--arcade-night) 60%, transparent);
+        background: color-mix(in srgb, var(--arcade-night) 94%, transparent);
+        color: var(--arcade-ink);
+        cursor: default;
+        animation: rise 0.18s steps(3, jump-none);
+      }
+      #notice.urgent {
+        border-color: var(--arcade-gold);
+      }
+      @keyframes rise {
+        from {
+          transform: translateY(12px);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #notice {
+          animation: none;
+        }
+      }
+      #notice-face {
+        flex: none;
+        box-sizing: content-box;
+        padding: 5px 6px;
+        background: linear-gradient(#303d7d, #7577b8);
+        image-rendering: pixelated;
+      }
+      #notice-body {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      #notice p {
+        margin: 0;
+      }
+      #notice-text {
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+      }
+      #notice-extra {
+        color: var(--arcade-gold);
+      }
+      #notice-actions {
+        display: flex;
+        gap: 6px;
+      }
+      #notice button.plate {
+        min-height: 24px;
+        padding: 0 8px;
+      }
+      #notice.urgent #notice-go {
+        border-color: var(--arcade-gold);
+        background: var(--arcade-gold);
+        color: var(--arcade-night);
+        font-weight: 700;
+      }
+      #notice button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage" tabindex="0">
+      <canvas id="game" role="img"></canvas>
+      <div id="card">
+        <p id="card-brand"></p>
+        <p id="card-note" hidden></p>
+        <p id="card-title"></p>
+        <p id="card-sub" hidden></p>
+        <p id="card-news" hidden></p>
+        <p id="card-hint"></p>
+        <div id="card-actions">
+          <button id="wardrobe-open" class="plate" type="button">
+            <canvas id="wardrobe-preview"></canvas>
+            <span id="wardrobe-text">
+              <span id="wardrobe-label"></span>
+              <span id="wardrobe-wallet" class="coins"></span>
+            </span>
+            <span id="wardrobe-arrow" aria-hidden="true"></span>
+          </button>
+          <button id="sound" class="plate toggle" type="button">
+            <span class="glyph"></span><span class="label"></span>
+          </button>
+          <button id="options-open" class="plate toggle" type="button">
+            <span class="glyph"></span><span class="label"></span>
+          </button>
+        </div>
+      </div>
+      <div id="wardrobe" role="dialog" aria-labelledby="wardrobe-title" hidden>
+        <div id="wardrobe-head">
+          <p id="wardrobe-title"></p>
+          <p id="wardrobe-coins"><span id="wardrobe-count"></span></p>
+        </div>
+        <div id="wardrobe-body">
+          <div id="characters" class="tiles" role="group" aria-labelledby="wardrobe-title"></div>
+          <p id="accessories-title"></p>
+          <div id="accessories" class="tiles" role="group" aria-labelledby="accessories-title"></div>
+          <p id="wardrobe-how"></p>
+        </div>
+        <button id="wardrobe-close" class="plate" type="button"></button>
+      </div>
+      <div id="options" class="sheet" role="dialog" aria-labelledby="options-title" hidden>
+        <p id="options-title" class="sheet-title"></p>
+        <div id="options-list"></div>
+        <button id="options-close" class="plate" type="button"></button>
+      </div>
+      <div id="notice" role="status" aria-live="polite" hidden>
+        <canvas id="notice-face"></canvas>
+        <div id="notice-body">
+          <p id="notice-text"></p>
+          <p id="notice-extra" hidden></p>
+          <div id="notice-actions">
+            <button id="notice-go" class="plate" type="button"></button>
+            <button id="notice-close" class="plate" type="button"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

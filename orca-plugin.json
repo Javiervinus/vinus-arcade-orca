@@ -1,0 +1,69 @@
+{
+  "manifestVersion": 2,
+  "id": "vinus-arcade",
+  "name": "Vinus Arcade",
+  "version": "0.1.0",
+  "description": "Pixel art games for the wait between agents, in an office that is yours: your projects hang on its wall, your agents sit at its desks and send you what they finish while you play, and it takes you to the agent that needs you. The first game is Blip.",
+  "author": {
+    "name": "Javier Vinueza",
+    "url": "https://github.com/Javiervinus"
+  },
+  "repository": "https://github.com/Javiervinus/vinus-arcade-orca",
+  "homepage": "https://github.com/Javiervinus/vinus-arcade-orca#readme",
+  "icon": "media/icon.png",
+  "cover": {
+    "path": "media/cover.png",
+    "alt": "Vinus Arcade: its seven pixel art characters beside a run of Blip, the first game, in an office at dusk."
+  },
+  "screenshots": [
+    {
+      "path": "media/screenshot-play.png",
+      "alt": "Three views of Blip: the office with agents at its desks before a run, a run with the x2 tile, and a project sent in by an agent that finished.",
+      "caption": "Blip, the first game: your projects on the wall, your agents at the desks, and what they finish flying into your run."
+    },
+    {
+      "path": "media/screenshot-agents.png",
+      "alt": "A notice from an agent that is waiting, the characters to buy with coins, and the options.",
+      "caption": "The game tells you when an agent needs you and takes you to it. Characters are bought with the coins of your runs."
+    }
+  ],
+  "license": "MIT",
+  "engines": {
+    "orca": ">=1.4.248"
+  },
+  "execution": "trusted-worker",
+  "pluginApi": 1,
+  "main": "src/worker.ts",
+  "contributes": {
+    "panels": [
+      {
+        "id": "game",
+        "title": "Vinus Arcade",
+        "icon": "rocket",
+        "entry": "src/panel.html"
+      }
+    ],
+    "events": [
+      {
+        "on": "agent.status.changed"
+      },
+      {
+        "on": "workspace.removed"
+      }
+    ]
+  },
+  "capabilities": [
+    {
+      "kind": "agent:read"
+    },
+    {
+      "kind": "workspace:read"
+    },
+    {
+      "kind": "workspace:write"
+    },
+    {
+      "kind": "storage:own"
+    }
+  ]
+}
