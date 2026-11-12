@@ -2,8 +2,8 @@
   "manifestVersion": 2,
   "id": "vinus-arcade",
   "name": "Vinus Arcade",
-  "version": "0.1.0",
-  "description": "Pixel art games for the wait between agents, in an office that is yours: your projects hang on its wall, your agents sit at its desks and send you what they finish while you play, and it takes you to the agent that needs you. The first game is Blip.",
+  "version": "0.2.0",
+  "description": "Pixel art games for the wait between agents, in an office that is yours: your projects hang on its wall, your agents sit at its desks and send you what they finish while you play, and it takes you to the agent that needs you. The first game is Blip; more are on the way.",
   "author": {
     "name": "Javier Vinueza",
     "url": "https://github.com/Javiervinus"
@@ -23,8 +23,8 @@
     },
     {
       "path": "media/screenshot-agents.png",
-      "alt": "A notice from an agent that is waiting, the characters to buy with coins, and the options.",
-      "caption": "The game tells you when an agent needs you and takes you to it. Characters are bought with the coins of your runs."
+      "alt": "A notice from an agent that is waiting, the characters to buy with coins, and the games window with Blip and two games still to come.",
+      "caption": "It tells you when an agent needs you. Coins buy characters, and more games are on the way."
     }
   ],
   "license": "MIT",
