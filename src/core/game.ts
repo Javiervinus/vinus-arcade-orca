@@ -6,6 +6,7 @@ import type { Office } from './office'
 import type { Paint } from './paint'
 import type { Note } from './sound'
 import type { Accessory, Skin } from './sprites'
+import type { Language } from './strings'
 
 /** The plugin's own name, for what it writes to the console. */
 export const ARCADE_NAME = 'Vinus Arcade'
@@ -71,6 +72,7 @@ export interface GameDefinition {
   id: string
   /** A game's name is a name: it is not translated. */
   name: string
-  texts: { en: GameTexts; es: GameTexts }
+  /** What it says, in each language of the panel. */
+  texts: Record<Language, GameTexts>
   create(host: GameHost): GameSession
 }

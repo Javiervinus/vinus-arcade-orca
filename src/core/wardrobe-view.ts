@@ -41,6 +41,9 @@ export interface WardrobeActions {
 interface Tile {
   button: HTMLButtonElement
   preview: HTMLCanvasElement
+  label: HTMLSpanElement
+  /** What it is called, in the language of the moment. */
+  name(): string
   price: HTMLSpanElement
   /** The thing it sells, or null for the free choices (`auto`, no accessory). */
   item: ItemId | null
@@ -93,16 +96,16 @@ export class Wardrobe {
   ) {
     const choices: SkinChoice[] = ['auto', ...SKIN_IDS]
     for (const choice of choices) {
-      const name = choice === 'auto' ? strings.auto : strings.items[choice]
+      const name = (): string => (choice === 'auto' ? strings.auto : strings.items[choice])
       const tile = this.tile(name, choice === 'auto' ? null : choice)
-      if (choice === 'auto') tile.button.title = strings.autoHint
       tile.button.addEventListener('click', () => this.press(tile, () => actions.chooseSkin(choice)))
       this.skinTiles.set(choice, tile)
       characters.append(tile.button)
     }
     const worn: (AccessoryId | 'none')[] = ['none', ...ACCESSORY_IDS]
     for (const id of worn) {
-      const tile = this.tile(id === 'none' ? strings.none : strings.items[id], id === 'none' ? null : id)
+      const name = (): string => (id === 'none' ? strings.none : strings.items[id])
+      const tile = this.tile(name, id === 'none' ? null : id)
       tile.button.addEventListener('click', () =>
         this.press(tile, () => actions.chooseAccessory(id === 'none' ? null : id))
       )
@@ -132,17 +135,20 @@ export class Wardrobe {
     const skin = state.choice === 'auto' ? state.autoSkin : state.choice
     this.count.textContent = String(state.coins)
     for (const [choice, tile] of this.skinTiles) {
+      tile.label.textContent = tile.name()
+      tile.button.title = choice === 'auto' ? this.strings.autoHint : ''
       paintLook(tile.preview, choice === 'auto' ? state.autoSkin : choice, null)
       this.mark(tile, state, choice === state.choice)
     }
     for (const [id, tile] of this.accessoryTiles) {
       const accessory = id === 'none' ? null : id
+      tile.label.textContent = tile.name()
       paintLook(tile.preview, skin, accessory)
       this.mark(tile, state, accessory === state.accessory)
     }
   }
 
-  private tile(name: string, item: ItemId | null): Tile {
+  private tile(name: () => string, item: ItemId | null): Tile {
     const button = document.createElement('button')
     button.type = 'button'
     button.className = 'tile'
@@ -150,11 +156,10 @@ export class Wardrobe {
     sizePreview(preview)
     const label = document.createElement('span')
     label.className = 'tile-name'
-    label.textContent = name
     const price = document.createElement('span')
     price.className = 'tile-price'
     button.append(preview, label, price)
-    return { button, preview, price, item }
+    return { button, preview, label, name, price, item }
   }
 
   private mark(tile: Tile, state: WardrobeState, inUse: boolean): void {

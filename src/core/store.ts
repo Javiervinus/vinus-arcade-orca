@@ -8,7 +8,8 @@ export const STORE = {
   sound: 'sound',
   hideNames: 'hideNames',
   pauseOnNeed: 'pauseOnNeed',
-  pauseOnDone: 'pauseOnDone'
+  pauseOnDone: 'pauseOnDone',
+  language: 'language'
 } as const
 
 /** Where a game's best score is kept. */

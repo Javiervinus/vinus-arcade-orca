@@ -1,9 +1,17 @@
 // The texts that are put together from parts.
 import { assert, test } from 'orca/testing'
-import { fill, newsText, stringsFor } from './strings'
+import {
+  DEFAULT_LANGUAGE,
+  LANGUAGES,
+  LANGUAGE_NAMES,
+  fill,
+  isLanguage,
+  newsText,
+  stringsFor
+} from './strings'
 
-const es = stringsFor('es-EC')
-const en = stringsFor('en-US')
+const es = stringsFor('es')
+const en = stringsFor('en')
 
 test('fills the places of a text and leaves the ones it has no value for', () => {
   assert.equal(fill('{name} has {count}', { name: 'orbit', count: 5 }), 'orbit has 5')
@@ -43,7 +51,22 @@ test('the summary leaves out the names when they are hidden or unknown', () => {
   )
 })
 
-test('Spanish is used for any Spanish locale and English for the rest', () => {
+test('each language has every text, and the panel starts in English', () => {
+  assert.equal(DEFAULT_LANGUAGE, 'en')
   assert.equal(es.items.cat, 'Gato')
-  assert.equal(stringsFor('fr-FR').items.cat, 'Cat')
+  assert.equal(en.items.cat, 'Cat')
+  for (const language of LANGUAGES) {
+    const texts = stringsFor(language)
+    assert.deepEqual(Object.keys(texts).sort(), Object.keys(en).sort())
+    for (const [key, text] of Object.entries(texts)) {
+      if (typeof text === 'string') assert.ok(text.length > 0, `${language} has no "${key}"`)
+    }
+    assert.ok(LANGUAGE_NAMES[language])
+  }
+})
+
+test('only a language there is counts as one', () => {
+  assert.equal(isLanguage('es'), true)
+  assert.equal(isLanguage('fr'), false)
+  assert.equal(isLanguage(null), false)
 })

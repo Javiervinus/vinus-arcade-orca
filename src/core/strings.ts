@@ -1,4 +1,4 @@
-// The panel's texts, in the language Orca's interface uses (`orca.locale`).
+// The panel's texts, in the language the person chose in the options. English until they choose.
 import type { ItemId } from './wardrobe'
 
 const EN = {
@@ -27,8 +27,15 @@ const EN = {
   optionNamesHint: 'Off hides the icons and the names of your projects, for when you share your screen',
   optionPauseNeed: 'Pause when an agent needs you',
   optionPauseDone: 'Pause when an agent finishes',
+  optionLanguage: 'Language (Idioma)',
   on: 'On',
   off: 'Off',
+
+  games: 'More games',
+  gamesTitle: 'Games',
+  playing: 'Playing',
+  soon: 'Soon',
+  soonHint: 'More games are on the way. They arrive with the updates of the plugin.',
 
   waitingIn: 'An agent in {name} is waiting for you',
   waiting: 'An agent is waiting for you',
@@ -71,8 +78,15 @@ const ES: typeof EN = {
   optionNamesHint: 'En «no» se ocultan los íconos y los nombres de tus proyectos, para cuando compartes pantalla',
   optionPauseNeed: 'Pausar cuando un agente te necesita',
   optionPauseDone: 'Pausar cuando un agente termina',
+  optionLanguage: 'Idioma (Language)',
   on: 'Sí',
   off: 'No',
+
+  games: 'Más juegos',
+  gamesTitle: 'Juegos',
+  playing: 'Jugando',
+  soon: 'Pronto',
+  soonHint: 'Vienen más juegos en camino. Llegan con las actualizaciones del plugin.',
 
   waitingIn: 'Un agente de {name} te está esperando',
   waiting: 'Un agente te está esperando',
@@ -117,10 +131,19 @@ const ITEMS_ES: Record<ItemId, string> = {
 
 export type Strings = typeof EN & { items: Record<ItemId, string> }
 
-export function stringsFor(locale: string): Strings {
-  return locale.toLowerCase().startsWith('es')
-    ? { ...ES, items: ITEMS_ES }
-    : { ...EN, items: ITEMS_EN }
+export type Language = 'en' | 'es'
+export const LANGUAGES: readonly Language[] = ['en', 'es']
+/** The language of a panel nobody has set yet. */
+export const DEFAULT_LANGUAGE: Language = 'en'
+/** What each language calls itself: a name is read by who speaks it, so it is not translated. */
+export const LANGUAGE_NAMES: Record<Language, string> = { en: 'English', es: 'Español' }
+
+export function isLanguage(value: unknown): value is Language {
+  return typeof value === 'string' && (LANGUAGES as readonly string[]).includes(value)
+}
+
+export function stringsFor(language: Language): Strings {
+  return language === 'es' ? { ...ES, items: ITEMS_ES } : { ...EN, items: ITEMS_EN }
 }
 
 /** Puts values in a text's `{places}`. */
