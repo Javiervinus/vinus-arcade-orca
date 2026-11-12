@@ -385,15 +385,19 @@ export const GLYPHS: Record<string, readonly string[]> = {
   X: ['101', '101', '010', '101', '101'],
   Y: ['101', '101', '010', '010', '010'],
   Z: ['111', '001', '010', '100', '111'],
-  '!': ['010', '010', '010', '000', '010']
+  '!': ['010', '010', '010', '000', '010'],
+  '?': ['111', '001', '010', '000', '010']
 }
+
+/** The glyphs that are no letter or digit: they stand for no name. */
+const PUNCTUATION = '!?'
 
 /** The letter or digit that stands for a name on a plaque, or null when the font has none
  *  (a name in another script): the plaque is then drawn without a letter. */
 export function initialOf(name: string): string | null {
   const plain = name.normalize('NFD').toUpperCase()
   for (const char of plain) {
-    if (GLYPHS[char] && char !== '!') return char
+    if (GLYPHS[char] && !PUNCTUATION.includes(char)) return char
   }
   return null
 }

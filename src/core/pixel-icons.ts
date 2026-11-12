@@ -24,6 +24,15 @@ export const PIXEL_ICONS = {
     '...xx......',
     '....x......'
   ],
+  games: [
+    '.xxxxxxxxxxx.',
+    'xxx.xxxxxxxxx',
+    'xx...xxxx.xxx',
+    'xxx.xxxxxxx.x',
+    'xxxxxxxxxxxxx',
+    'xxxx.....xxxx',
+    '.xx.......xx.'
+  ],
   options: [
     '...xxx...',
     '.x.xxx.x.',
