@@ -2,6 +2,13 @@
 
 What changes in each version of Vinus Arcade. Versions follow [semantic versioning](https://semver.org).
 
+## 0.2.0 (2026-11-12)
+
+- **More games**: a window on the card shows the games there are and the room kept for the ones
+  on the way.
+- **Language**: the panel starts in English and changes to Spanish in the options, instead of
+  following the language of Orca.
+
 ## 0.1.0 (2026-11-12)
 
 The first version.

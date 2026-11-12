@@ -7,9 +7,12 @@ are played in an office that is yours: your projects hang on its wall, your agen
 desks and send you what they finish while you play, and when one of them needs you the game
 tells you and one click takes you to it.
 
-It is one panel with several games inside, not a panel for each game. The first one is **Blip**;
-the coins, the characters and the settings belong to all of them, and each game keeps its own
-best score.
+It is one panel with several games inside, not a panel for each game. The first one is **Blip**,
+and more are on the way: **More games**, on the card, shows the ones there are and the room kept
+for the next. The coins, the characters and the settings belong to all of them, and each game
+keeps its own best score.
+
+It speaks English and Spanish: English until you choose Spanish in the options.
 
 Made by [Javier Vinueza](https://github.com/Javiervinus) · [Leer en español](README.es.md)
 
@@ -69,6 +72,7 @@ Fly a little agent between the bookshelves of an office at dusk.
 
 | Option | What it does | Default |
 | --- | --- | --- |
+| Language (Idioma) | The language of the panel: English or Español. | English |
 | Sound | The game's sounds and the chime of the notices. | On |
 | Project names | Off hides the icons and the names of your projects, for when you share your screen. | On |
 | Pause when an agent needs you | The game stops when an agent waits for your answer or gets blocked. | On |

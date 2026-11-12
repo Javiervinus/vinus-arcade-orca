@@ -7,8 +7,12 @@ Se juegan en una oficina que es tuya: tus proyectos cuelgan de su pared, tus age
 sus escritorios y te mandan lo que terminan mientras juegas y, cuando uno te necesita, el juego
 te lo dice y un clic te lleva a él.
 
-Es un solo panel con varios juegos adentro, no un panel por juego. El primero es **Blip**; las
-monedas, los personajes y los ajustes son de todos, y cada juego guarda su propio récord.
+Es un solo panel con varios juegos adentro, no un panel por juego. El primero es **Blip** y
+vienen más en camino: **Más juegos**, en la tarjeta, muestra los que hay y el lugar guardado para
+los siguientes. Las monedas, los personajes y los ajustes son de todos, y cada juego guarda su
+propio récord.
+
+Habla inglés y español: inglés hasta que elijas español en las opciones (**Options → Language**).
 
 Hecho por [Javier Vinueza](https://github.com/Javiervinus) · [Read in English](README.md)
 
@@ -70,6 +74,7 @@ Lleva a un pequeño agente entre las estanterías de una oficina al anochecer.
 
 | Opción | Qué hace | De fábrica |
 | --- | --- | --- |
+| Idioma (Language) | El idioma del panel: English o Español. | English |
 | Sonido | Los sonidos del juego y la campanita de los avisos. | Sí |
 | Nombres de proyectos | En «no» se ocultan los íconos y los nombres de tus proyectos, para cuando compartes pantalla. | Sí |
 | Pausar cuando un agente te necesita | El juego se detiene cuando un agente espera tu respuesta o se bloquea. | Sí |
