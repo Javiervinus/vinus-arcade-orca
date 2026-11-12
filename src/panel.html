@@ -334,6 +334,16 @@
         letter-spacing: 0.1em;
         text-transform: uppercase;
       }
+      /* The way to the games takes the whole row, like the way to the characters. */
+      #games-open {
+        grid-column: 1 / -1;
+      }
+      #games-soon {
+        color: var(--arcade-ink-soft);
+      }
+      button.tile:disabled {
+        cursor: default;
+      }
       #options-list {
         flex: 0 1 auto;
         min-height: 0;
@@ -480,6 +490,9 @@
           <button id="options-open" class="plate toggle" type="button">
             <span class="glyph"></span><span class="label"></span>
           </button>
+          <button id="games-open" class="plate toggle" type="button">
+            <span class="glyph"></span><span class="label"></span>
+          </button>
         </div>
       </div>
       <div id="wardrobe" role="dialog" aria-labelledby="wardrobe-title" hidden>
@@ -494,6 +507,12 @@
           <p id="wardrobe-how"></p>
         </div>
         <button id="wardrobe-close" class="plate" type="button"></button>
+      </div>
+      <div id="games" class="sheet" role="dialog" aria-labelledby="games-title" hidden>
+        <p id="games-title" class="sheet-title"></p>
+        <div id="games-list" class="tiles" role="group" aria-labelledby="games-title"></div>
+        <p id="games-soon"></p>
+        <button id="games-close" class="plate" type="button"></button>
       </div>
       <div id="options" class="sheet" role="dialog" aria-labelledby="options-title" hidden>
         <p id="options-title" class="sheet-title"></p>

@@ -10,6 +10,7 @@ import {
   type GameTexts,
   type Look
 } from './core/game'
+import { GamesMenu } from './core/games-view'
 import { Icons } from './core/icons'
 import { Notice } from './core/notice-view'
 import { Office } from './core/office'
@@ -18,7 +19,17 @@ import { PIXEL_ICONS, pixelIcon } from './core/pixel-icons'
 import { SOUNDS, Sound } from './core/sound'
 import { ACCESSORIES, SKINS, skinForAgent, type AccessoryId, type SkinId } from './core/sprites'
 import { STORE, bestKey } from './core/store'
-import { fill, newsText, stringsFor } from './core/strings'
+import {
+  DEFAULT_LANGUAGE,
+  LANGUAGES,
+  LANGUAGE_NAMES,
+  fill,
+  isLanguage,
+  newsText,
+  stringsFor,
+  type Language,
+  type Strings
+} from './core/strings'
 import {
   COINS_PER_DELIVERY,
   COINS_PER_TOKEN,
@@ -62,8 +73,11 @@ function context2d(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
   return context
 }
 
-const spanish = orca.locale.toLowerCase().startsWith('es')
-const strings = stringsFor(orca.locale)
+/** The language of the panel: English until the person chooses another in the options. */
+let language: Language = DEFAULT_LANGUAGE
+/** The texts in that language. One object for the whole panel, filled again when the language
+ *  changes, so every view that holds it follows. */
+const strings: Strings = stringsFor(language)
 const stage = element<HTMLDivElement>('stage')
 const canvas = element<HTMLCanvasElement>('game')
 const ctx = context2d(canvas)
@@ -83,6 +97,9 @@ const soundButton = element<HTMLButtonElement>('sound')
 const optionsButton = element<HTMLButtonElement>('options-open')
 const optionsBox = element<HTMLDivElement>('options')
 const optionsClose = element<HTMLButtonElement>('options-close')
+const gamesButton = element<HTMLButtonElement>('games-open')
+const gamesBox = element<HTMLDivElement>('games')
+const gamesClose = element<HTMLButtonElement>('games-close')
 const noticeGo = element<HTMLButtonElement>('notice-go')
 const noticeClose = element<HTMLButtonElement>('notice-close')
 
@@ -105,7 +122,6 @@ let bought: ItemId[] = []
 let choice: SkinChoice = 'auto'
 let autoSkin: SkinId = 'blip'
 let accessory: AccessoryId | null = null
-/** How many times a coin caught in a run counts: more while the agents work. */
 /** Whether the game stops when an agent needs the person, and when one finishes. */
 let pauseOnNeed = true
 let pauseOnDone = false
@@ -117,6 +133,9 @@ let beaten = false
 let newBest = false
 
 let news = ''
+/** Whether what the person saved has been read: the card waits for it, so it never shows in a
+ *  language and then changes. */
+let loaded = false
 let paused = false
 let running = false
 let lastFrame = 0
@@ -168,7 +187,7 @@ const host: GameHost = {
 /** The game being played. With one game there is nothing to choose; the arcade is made so the
  *  next one only has to be added to src/games. */
 const definition: GameDefinition = GAMES[0]
-const texts: GameTexts = spanish ? definition.texts.es : definition.texts.en
+let texts: GameTexts = definition.texts[language]
 const session: GameSession = definition.create(host)
 
 function draw(): void {
@@ -211,8 +230,8 @@ function showButton(
 
 function showCard(): void {
   const playing = session.phase === 'playing' && !paused
-  card.hidden = playing
-  if (playing) return
+  card.hidden = playing || !loaded
+  if (card.hidden) return
   const over = session.phase === 'over'
   const record = over && newBest
   const bestLine = `${strings.best} ${best}`
@@ -345,7 +364,7 @@ async function refreshAutoSkin(): Promise<void> {
 
 /** The one action every game has: play, start, try again or go on after a pause. */
 function act(): void {
-  if (wardrobe.open || options.open) return
+  if (sheetOpen()) return
   sound.unlock()
   news = ''
   if (paused) {
@@ -408,10 +427,19 @@ function setSound(on: boolean): void {
 }
 
 const options = new Options(optionsBox, element('options-list'), strings, [
-  { label: strings.optionSound, get: () => sound.enabled, set: setSound },
   {
-    label: strings.optionNames,
-    hint: strings.optionNamesHint,
+    label: () => strings.optionLanguage,
+    value: () => LANGUAGE_NAMES[language],
+    next() {
+      const following = LANGUAGES[(LANGUAGES.indexOf(language) + 1) % LANGUAGES.length]
+      setLanguage(following ?? DEFAULT_LANGUAGE)
+      save(STORE.language, language)
+    }
+  },
+  { label: () => strings.optionSound, get: () => sound.enabled, set: setSound },
+  {
+    label: () => strings.optionNames,
+    hint: () => strings.optionNamesHint,
     get: () => !office.hideNames,
     set(shown) {
       office.hideNames = !shown
@@ -420,7 +448,7 @@ const options = new Options(optionsBox, element('options-list'), strings, [
     }
   },
   {
-    label: strings.optionPauseNeed,
+    label: () => strings.optionPauseNeed,
     get: () => pauseOnNeed,
     set(on) {
       pauseOnNeed = on
@@ -428,7 +456,7 @@ const options = new Options(optionsBox, element('options-list'), strings, [
     }
   },
   {
-    label: strings.optionPauseDone,
+    label: () => strings.optionPauseDone,
     get: () => pauseOnDone,
     set(on) {
       pauseOnDone = on
@@ -436,6 +464,51 @@ const options = new Options(optionsBox, element('options-list'), strings, [
     }
   }
 ])
+
+const games = new GamesMenu(gamesBox, element('games-list'), strings, GAMES, {
+  current: () => definition.id,
+  worn: wearing,
+  // With one game, choosing it is going back to it.
+  choose: () => closeSheets()
+})
+
+function sheetOpen(): boolean {
+  return wardrobe.open || options.open || games.open
+}
+
+/** Writes everything the panel says once, in the language of the moment. */
+function applyTexts(): void {
+  document.documentElement.lang = language
+  canvas.setAttribute('aria-label', texts.label)
+  element('wardrobe-label').textContent = strings.characters
+  element('wardrobe-title').textContent = strings.characters
+  element('accessories-title').textContent = strings.accessories
+  element('wardrobe-how').textContent = fill(strings.howToEarn, {
+    delivery: COINS_PER_DELIVERY,
+    token: COINS_PER_TOKEN
+  })
+  wardrobeClose.textContent = strings.dismiss
+  element('options-title').textContent = strings.options
+  optionsClose.textContent = strings.dismiss
+  showButton(optionsButton, PIXEL_ICONS.options, strings.options, strings.options)
+  element('games-title').textContent = strings.gamesTitle
+  element('games-soon').textContent = strings.soonHint
+  gamesClose.textContent = strings.dismiss
+  showButton(gamesButton, PIXEL_ICONS.games, strings.games, strings.games)
+  noticeGo.textContent = strings.goToAgent
+  noticeClose.textContent = strings.dismiss
+  wardrobe.refresh()
+  options.refresh()
+  games.refresh()
+  showCard()
+}
+
+function setLanguage(next: Language): void {
+  language = next
+  Object.assign(strings, stringsFor(language))
+  texts = definition.texts[language]
+  applyTexts()
+}
 
 function markSeen(): void {
   orca.plugin.request('office.seen').catch((error: unknown) => {
@@ -540,7 +613,8 @@ async function loadStored(): Promise<void> {
       storedSound,
       hidden,
       onNeed,
-      onDone
+      onDone,
+      storedLanguage
     ] = await Promise.all([
       orca.storage.get(bestKey(definition.id)),
       orca.storage.get(STORE.coins),
@@ -550,7 +624,8 @@ async function loadStored(): Promise<void> {
       orca.storage.get(STORE.sound),
       orca.storage.get(STORE.hideNames),
       orca.storage.get(STORE.pauseOnNeed),
-      orca.storage.get(STORE.pauseOnDone)
+      orca.storage.get(STORE.pauseOnDone),
+      orca.storage.get(STORE.language)
     ])
     if (typeof storedBest === 'number' && storedBest > 0) best = Math.floor(storedBest)
     if (typeof storedCoins === 'number' && storedCoins > 0) earned = Math.floor(storedCoins)
@@ -561,19 +636,21 @@ async function loadStored(): Promise<void> {
     if (typeof hidden === 'boolean') office.hideNames = hidden
     if (typeof onNeed === 'boolean') pauseOnNeed = onNeed
     if (typeof onDone === 'boolean') pauseOnDone = onDone
+    if (isLanguage(storedLanguage)) language = storedLanguage
     await icons.load()
   } catch (error) {
     console.warn(`${ARCADE_NAME} could not read what it saved`, error)
   }
+  loaded = true
   office.setCoins(coins())
-  wardrobe.refresh()
-  showCard()
+  setLanguage(language)
   draw()
 }
 
 function closeSheets(): void {
   wardrobe.hide()
   options.hide()
+  games.hide()
   showCard()
   stage.focus()
 }
@@ -582,26 +659,13 @@ function insideButton(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest('button') !== null
 }
 
-canvas.setAttribute('aria-label', texts.label)
-element('wardrobe-label').textContent = strings.characters
 sizePreview(wardrobePreview)
-element('wardrobe-title').textContent = strings.characters
-element('accessories-title').textContent = strings.accessories
-element('wardrobe-how').textContent = fill(strings.howToEarn, {
-  delivery: COINS_PER_DELIVERY,
-  token: COINS_PER_TOKEN
-})
-wardrobeClose.textContent = strings.dismiss
-element('options-title').textContent = strings.options
-optionsClose.textContent = strings.dismiss
-showButton(optionsButton, PIXEL_ICONS.options, strings.options, strings.options)
-noticeGo.textContent = strings.goToAgent
-noticeClose.textContent = strings.dismiss
+applyTexts()
 office.onCoin = () => sound.play(SOUNDS.coin)
 
 window.addEventListener('keydown', (event) => {
   if (event.repeat || event.metaKey || event.ctrlKey || event.altKey) return
-  if (wardrobe.open || options.open) {
+  if (sheetOpen()) {
     if (event.code === 'Escape') {
       event.preventDefault()
       closeSheets()
@@ -623,7 +687,7 @@ window.addEventListener('keydown', (event) => {
 stage.addEventListener('pointerdown', (event) => {
   const target = event.target as Node
   if (insideButton(target) || notice.contains(target)) return
-  if (wardrobeBox.contains(target) || optionsBox.contains(target)) return
+  if (wardrobeBox.contains(target) || optionsBox.contains(target) || gamesBox.contains(target)) return
   stage.focus()
   act()
 })
@@ -639,6 +703,12 @@ optionsButton.addEventListener('click', () => {
   optionsClose.focus()
 })
 optionsClose.addEventListener('click', closeSheets)
+gamesButton.addEventListener('click', () => {
+  sound.unlock()
+  games.show()
+  gamesClose.focus()
+})
+gamesClose.addEventListener('click', closeSheets)
 soundButton.addEventListener('click', () => {
   setSound(!sound.enabled)
   stage.focus()
