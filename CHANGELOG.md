@@ -2,6 +2,16 @@
 
 What changes in each version of Vinus Arcade. Versions follow [semantic versioning](https://semver.org).
 
+## 0.3.0 (2026-11-13)
+
+- **World ranking**: the ten best runs of each game this week and of all time. Joining takes a
+  nickname, and nothing is sent before that. The server plays each run again before it counts,
+  so a score cannot be made up, and leaving deletes everything it kept.
+- **Rarer coins and x2 tiles in Blip**: coins sit in some gaps at random instead of every third
+  one, and the x2 tile comes less often, never early in a run and never soon after the last.
+- **Privacy**, in the README: what the plugin does with the access Orca warns about, and what
+  leaves your computer (only your nickname and your runs, if you join the ranking).
+
 ## 0.2.0 (2026-11-12)
 
 - **More games**: a window on the card shows the games there are and the room kept for the ones

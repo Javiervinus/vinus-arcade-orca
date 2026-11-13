@@ -2,8 +2,8 @@
   "manifestVersion": 2,
   "id": "vinus-arcade",
   "name": "Vinus Arcade",
-  "version": "0.2.0",
-  "description": "Pixel art games for the wait between agents, in an office that is yours: your projects hang on its wall, your agents sit at its desks and send you what they finish while you play, and it takes you to the agent that needs you. The first game is Blip; more are on the way.",
+  "version": "0.3.0",
+  "description": "Pixel art games for the wait between agents, in an office that is yours: your projects hang on the wall, your agents sit at the desks and call you when they need you, and a world ranking crowns the best runs of the week. Blip is the first game; more are on the way. Your projects and agents never leave your computer: only a nickname and your runs do, and only if you join the ranking.",
   "author": {
     "name": "Javier Vinueza",
     "url": "https://github.com/Javiervinus"
@@ -25,6 +25,11 @@
       "path": "media/screenshot-agents.png",
       "alt": "A notice from an agent that is waiting, the characters to buy with coins, and the games window with Blip and two games still to come.",
       "caption": "It tells you when an agent needs you. Coins buy characters, and more games are on the way."
+    },
+    {
+      "path": "media/screenshot-ranking.png",
+      "alt": "The world ranking of Blip: the ten best runs of the week, the card telling a new best and its place on the board, and the way in with a nickname.",
+      "caption": "A world ranking of the week and of all time. Every run is played again on the server before it counts."
     }
   ],
   "license": "MIT",
