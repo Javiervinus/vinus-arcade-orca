@@ -16,6 +16,7 @@ import { Notice } from './core/notice-view'
 import { Office } from './core/office'
 import { Options } from './core/options-view'
 import { PIXEL_ICONS, pixelIcon } from './core/pixel-icons'
+import { RankingSheet } from './core/ranking-view'
 import { SOUNDS, Sound } from './core/sound'
 import { ACCESSORIES, SKINS, skinForAgent, type AccessoryId, type SkinId } from './core/sprites'
 import { STORE, bestKey } from './core/store'
@@ -55,7 +56,9 @@ const VIEW = {
   /** While the run is still, the agents at the desks move this often and no more. */
   idleFrameMs: 250,
   /** How many screen pixels each pixel of a button's drawing takes. */
-  iconScale: 2
+  iconScale: 2,
+  /** How long the worker may take to have a long run flown again by the ranking's server. */
+  submitTimeoutMs: 120_000
 } as const
 const PLAY_KEYS: readonly string[] = ['Space', 'ArrowUp', 'KeyW', 'Enter']
 const PAUSE_KEYS: readonly string[] = ['KeyP', 'Escape']
@@ -87,6 +90,7 @@ const cardTitle = element<HTMLParagraphElement>('card-title')
 const cardNote = element<HTMLParagraphElement>('card-note')
 const cardSub = element<HTMLParagraphElement>('card-sub')
 const cardNews = element<HTMLParagraphElement>('card-news')
+const cardRank = element<HTMLParagraphElement>('card-rank')
 const cardHint = element<HTMLParagraphElement>('card-hint')
 const wardrobeButton = element<HTMLButtonElement>('wardrobe-open')
 const wardrobePreview = element<HTMLCanvasElement>('wardrobe-preview')
@@ -100,6 +104,9 @@ const optionsClose = element<HTMLButtonElement>('options-close')
 const gamesButton = element<HTMLButtonElement>('games-open')
 const gamesBox = element<HTMLDivElement>('games')
 const gamesClose = element<HTMLButtonElement>('games-close')
+const rankingButton = element<HTMLButtonElement>('ranking-open')
+const rankingBox = element<HTMLDivElement>('ranking')
+const rankingClose = element<HTMLButtonElement>('ranking-close')
 const noticeGo = element<HTMLButtonElement>('notice-go')
 const noticeClose = element<HTMLButtonElement>('notice-close')
 
@@ -133,6 +140,8 @@ let beaten = false
 let newBest = false
 
 let news = ''
+/** Where the run that just ended put the person in the world ranking; empty until it counts. */
+let rankLine = ''
 /** Whether what the person saved has been read: the card waits for it, so it never shows in a
  *  language and then changes. */
 let loaded = false
@@ -251,6 +260,8 @@ function showCard(): void {
   cardSub.hidden = record ? bestBefore === 0 : !(session.phase === 'ready' && best > 0)
   cardNews.textContent = news
   cardNews.hidden = news === ''
+  cardRank.textContent = rankLine
+  cardRank.hidden = rankLine === '' || !over
   cardHint.textContent = paused ? strings.resume : over ? strings.retry : texts.start
   const worn = wearing()
   paintLook(wardrobePreview, worn.skin, worn.accessory)
@@ -291,6 +302,35 @@ function follow(before: GameSession['phase']): void {
     sound.play(SOUNDS.fanfare)
   }
   showCard()
+  void sendRun()
+}
+
+/** Sends the run that just ended to the world ranking. The worker sends it only for a person
+ *  who joined, and only when it beats their best of the week. */
+async function sendRun(): Promise<void> {
+  const proof = session.proof()
+  if (!proof || proof.score <= 0) return
+  const sent = session.phase
+  try {
+    const result = await orca.plugin.request(
+      'ranking.submit',
+      { game: definition.id, score: proof.score, record: proof.record },
+      { timeoutMs: VIEW.submitTimeoutMs }
+    )
+    if (result.status === 'refused' && result.reason === 'not in the ranking') ranking.forget()
+    if (result.status !== 'counted') return
+    ranking.reload()
+    // Only the run that is the person's best of the week moves them on the board.
+    if (result.week.score !== result.score) return
+    const places = [fill(strings.rankingCardWeek, { rank: result.week.rank })]
+    if (result.all.score === result.score) places.push(fill(strings.rankingCardAll, { rank: result.all.rank }))
+    // A new run may have begun meanwhile: the line belongs to the card of the run it was about.
+    if (session.phase !== sent) return
+    rankLine = places.join(' · ')
+    showCard()
+  } catch (error) {
+    console.warn(`${ARCADE_NAME} could not send the run to the ranking`, error)
+  }
 }
 
 function frame(now: number): void {
@@ -367,6 +407,7 @@ function act(): void {
   if (sheetOpen()) return
   sound.unlock()
   news = ''
+  rankLine = ''
   if (paused) {
     setPaused(false)
     return
@@ -472,8 +513,37 @@ const games = new GamesMenu(gamesBox, element('games-list'), strings, GAMES, {
   choose: () => closeSheets()
 })
 
+const ranking = new RankingSheet(
+  {
+    root: rankingBox,
+    title: element('ranking-title'),
+    ends: element('ranking-ends'),
+    week: element<HTMLButtonElement>('ranking-week'),
+    all: element<HTMLButtonElement>('ranking-all'),
+    list: element<HTMLOListElement>('ranking-list'),
+    me: element('ranking-me'),
+    status: element('ranking-status'),
+    player: element('ranking-player'),
+    playingAs: element('ranking-as'),
+    rename: element<HTMLButtonElement>('ranking-rename'),
+    leave: element<HTMLButtonElement>('ranking-leave'),
+    form: element<HTMLFormElement>('ranking-join'),
+    pitch: element('ranking-pitch'),
+    name: element<HTMLInputElement>('ranking-name'),
+    join: element<HTMLButtonElement>('ranking-join-go'),
+    privacy: element('ranking-privacy')
+  },
+  strings,
+  {
+    game: () => ({ id: definition.id, name: definition.name }),
+    read: (game) => orca.plugin.request('ranking.read', { game }),
+    join: (name) => orca.plugin.request('ranking.join', { name }),
+    leave: () => orca.plugin.request('ranking.leave')
+  }
+)
+
 function sheetOpen(): boolean {
-  return wardrobe.open || options.open || games.open
+  return wardrobe.open || options.open || games.open || ranking.open
 }
 
 /** Writes everything the panel says once, in the language of the moment. */
@@ -495,11 +565,14 @@ function applyTexts(): void {
   element('games-soon').textContent = strings.soonHint
   gamesClose.textContent = strings.dismiss
   showButton(gamesButton, PIXEL_ICONS.games, strings.games, strings.games)
+  showButton(rankingButton, PIXEL_ICONS.ranking, strings.ranking, strings.rankingTitle)
+  rankingClose.textContent = strings.dismiss
   noticeGo.textContent = strings.goToAgent
   noticeClose.textContent = strings.dismiss
   wardrobe.refresh()
   options.refresh()
   games.refresh()
+  if (ranking.open) ranking.refresh()
   showCard()
 }
 
@@ -651,6 +724,7 @@ function closeSheets(): void {
   wardrobe.hide()
   options.hide()
   games.hide()
+  ranking.hide()
   showCard()
   stage.focus()
 }
@@ -687,7 +761,8 @@ window.addEventListener('keydown', (event) => {
 stage.addEventListener('pointerdown', (event) => {
   const target = event.target as Node
   if (insideButton(target) || notice.contains(target)) return
-  if (wardrobeBox.contains(target) || optionsBox.contains(target) || gamesBox.contains(target)) return
+  const sheets = [wardrobeBox, optionsBox, gamesBox, rankingBox]
+  if (sheets.some((sheet) => sheet.contains(target))) return
   stage.focus()
   act()
 })
@@ -709,6 +784,12 @@ gamesButton.addEventListener('click', () => {
   gamesClose.focus()
 })
 gamesClose.addEventListener('click', closeSheets)
+rankingButton.addEventListener('click', () => {
+  sound.unlock()
+  ranking.show()
+  rankingClose.focus()
+})
+rankingClose.addEventListener('click', closeSheets)
 soundButton.addEventListener('click', () => {
   setSound(!sound.enabled)
   stage.focus()

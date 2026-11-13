@@ -33,6 +33,17 @@ export const PIXEL_ICONS = {
     'xxxx.....xxxx',
     '.xx.......xx.'
   ],
+  ranking: [
+    '..xxxxxxx..',
+    'xxxxxxxxxxx',
+    'x.xxxxxxx.x',
+    'x.xxxxxxx.x',
+    '.xxxxxxxxx.',
+    '...xxxxx...',
+    '....xxx....',
+    '...xxxxx...',
+    '..xxxxxxx..'
+  ],
   options: [
     '...xxx...',
     '.x.xxx.x.',

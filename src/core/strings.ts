@@ -49,7 +49,33 @@ const EN = {
   awayMany: 'While you were away, your agents finished {count} tasks',
   goToAgent: 'Go to agent',
   dismiss: 'Close',
-  openFailed: 'Orca could not open that workspace'
+  openFailed: 'Orca could not open that workspace',
+
+  ranking: 'Ranking',
+  rankingTitle: 'World ranking',
+  rankingWeek: 'This week',
+  rankingAll: 'All time',
+  rankingEnds: 'New week in {time}',
+  rankingEmpty: 'No scores yet: the first run that counts takes first place.',
+  rankingYou: 'You: #{rank} with {score}',
+  rankingPlayingAs: 'You play as {name}',
+  rankingRename: 'Change name',
+  rankingLeave: 'Leave',
+  rankingLeaveSure: 'Sure? Press again',
+  rankingLeft: 'You left the ranking and your scores were deleted.',
+  rankingPitch: 'Pick a nickname to put your runs on the world ranking.',
+  rankingPlaceholder: 'Nickname',
+  rankingJoin: 'Join',
+  rankingSave: 'Save',
+  rankingPrivacy:
+    'Only your nickname and your runs are sent, and each run is played again on the server before it counts. Your projects and agents never leave your computer. Leaving deletes it all.',
+  rankingBadName: 'Use 2 to 16 letters or numbers.',
+  rankingSoon: 'Wait a few seconds and try again.',
+  rankingOffline: 'The ranking cannot be reached right now.',
+  rankingLoading: 'Loading…',
+  rankingFromNow: 'You are in. Your runs count from now on.',
+  rankingCardWeek: '#{rank} of the week',
+  rankingCardAll: '#{rank} of all time'
 }
 
 const ES: typeof EN = {
@@ -100,7 +126,33 @@ const ES: typeof EN = {
   awayMany: 'Mientras no mirabas, tus agentes terminaron {count} tareas',
   goToAgent: 'Ir al agente',
   dismiss: 'Cerrar',
-  openFailed: 'Orca no pudo abrir ese workspace'
+  openFailed: 'Orca no pudo abrir ese workspace',
+
+  ranking: 'Ranking',
+  rankingTitle: 'Ranking mundial',
+  rankingWeek: 'Esta semana',
+  rankingAll: 'Histórico',
+  rankingEnds: 'Nueva semana en {time}',
+  rankingEmpty: 'Aún no hay puntajes: la primera partida que cuente se queda con el primer lugar.',
+  rankingYou: 'Tú: #{rank} con {score}',
+  rankingPlayingAs: 'Juegas como {name}',
+  rankingRename: 'Cambiar nombre',
+  rankingLeave: 'Salir',
+  rankingLeaveSure: '¿Seguro? Pulsa otra vez',
+  rankingLeft: 'Saliste del ranking y se borraron tus puntajes.',
+  rankingPitch: 'Elige un apodo para que tus partidas entren al ranking mundial.',
+  rankingPlaceholder: 'Apodo',
+  rankingJoin: 'Entrar',
+  rankingSave: 'Guardar',
+  rankingPrivacy:
+    'Solo se envían tu apodo y tus partidas, y cada partida se vuelve a jugar en el servidor antes de contar. Tus proyectos y agentes nunca salen de tu computadora. Al salir se borra todo.',
+  rankingBadName: 'Usa de 2 a 16 letras o números.',
+  rankingSoon: 'Espera unos segundos y vuelve a intentar.',
+  rankingOffline: 'No se puede llegar al ranking ahora mismo.',
+  rankingLoading: 'Cargando…',
+  rankingFromNow: 'Ya estás dentro. Tus partidas cuentan desde ahora.',
+  rankingCardWeek: '#{rank} de la semana',
+  rankingCardAll: '#{rank} histórico'
 }
 
 /** What each character and accessory is called. An agent's name is a name: it is not translated. */

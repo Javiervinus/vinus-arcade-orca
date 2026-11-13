@@ -122,6 +122,12 @@
         max-width: 240px;
         color: var(--arcade-gold);
       }
+      /* Where the run that just ended put the person in the world ranking. */
+      #card-rank {
+        margin: 0;
+        color: var(--arcade-gold);
+        letter-spacing: 0.04em;
+      }
 
       #card-actions {
         display: grid;
@@ -334,10 +340,6 @@
         letter-spacing: 0.1em;
         text-transform: uppercase;
       }
-      /* The way to the games takes the whole row, like the way to the characters. */
-      #games-open {
-        grid-column: 1 / -1;
-      }
       #games-soon {
         color: var(--arcade-ink-soft);
       }
@@ -384,6 +386,151 @@
         background: var(--arcade-gold);
         color: var(--arcade-night);
         font-weight: 700;
+      }
+
+      /* The window of the world ranking: the boards, and the way in with a nickname. */
+      #ranking {
+        width: min(340px, calc(100% - 24px));
+      }
+      #ranking-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      #ranking-ends {
+        color: var(--arcade-ink-soft);
+        white-space: nowrap;
+      }
+      #ranking-body {
+        flex: 0 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      #ranking-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      #ranking-tabs button {
+        min-height: 26px;
+      }
+      #ranking-tabs button[aria-selected='true'] {
+        border-color: var(--arcade-gold);
+        background: var(--arcade-gold);
+        color: var(--arcade-night);
+        font-weight: 700;
+      }
+      #ranking-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .rank-row {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        padding: 3px 6px;
+        border-radius: 3px;
+      }
+      .rank-row:nth-child(odd) {
+        background: color-mix(in srgb, var(--arcade-ink) 5%, transparent);
+      }
+      .rank-row.me {
+        background: color-mix(in srgb, var(--arcade-gold) 18%, transparent);
+        color: var(--arcade-gold);
+        font-weight: 700;
+      }
+      .rank-place {
+        flex: none;
+        min-width: 2ch;
+        color: var(--arcade-ink-soft);
+        text-align: right;
+      }
+      .rank-row:nth-child(-n + 3) .rank-place,
+      .rank-row.me .rank-place {
+        color: var(--arcade-gold);
+      }
+      .rank-name {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .rank-score {
+        flex: none;
+        font-variant-numeric: tabular-nums;
+      }
+      .rank-empty {
+        color: var(--arcade-ink-soft);
+      }
+      #ranking-me,
+      #ranking-status,
+      #ranking-privacy {
+        color: var(--arcade-ink-soft);
+      }
+      #ranking-me {
+        color: var(--arcade-gold);
+      }
+      #ranking-player {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      #ranking-as {
+        flex: 1;
+        min-width: 0;
+      }
+      #ranking-player button.plate {
+        min-height: 26px;
+        padding: 0 8px;
+      }
+      #ranking-join {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 0;
+      }
+      #ranking-join-row {
+        display: flex;
+        gap: 6px;
+      }
+      #ranking-name {
+        flex: 1;
+        min-width: 0;
+        min-height: 28px;
+        box-sizing: border-box;
+        padding: 0 8px;
+        border: 1px solid color-mix(in srgb, var(--arcade-ink) 28%, transparent);
+        border-radius: 4px;
+        background: color-mix(in srgb, var(--arcade-ink) 8%, transparent);
+        color: var(--arcade-ink);
+        font: inherit;
+        cursor: text;
+        user-select: text;
+        -webkit-user-select: text;
+      }
+      #ranking-name:focus-visible {
+        outline: 2px solid var(--arcade-gold);
+        outline-offset: 1px;
+      }
+      #ranking-join-go {
+        border-color: var(--arcade-gold);
+        background: var(--arcade-gold);
+        color: var(--arcade-night);
+        font-weight: 700;
+      }
+      #ranking button:disabled {
+        opacity: 0.6;
+        cursor: default;
       }
 
       /* What an agent says, in the game's own look: a character speaking at the foot of the
@@ -474,6 +621,7 @@
         <p id="card-title"></p>
         <p id="card-sub" hidden></p>
         <p id="card-news" hidden></p>
+        <p id="card-rank" hidden></p>
         <p id="card-hint"></p>
         <div id="card-actions">
           <button id="wardrobe-open" class="plate" type="button">
@@ -491,6 +639,9 @@
             <span class="glyph"></span><span class="label"></span>
           </button>
           <button id="games-open" class="plate toggle" type="button">
+            <span class="glyph"></span><span class="label"></span>
+          </button>
+          <button id="ranking-open" class="plate toggle" type="button">
             <span class="glyph"></span><span class="label"></span>
           </button>
         </div>
@@ -513,6 +664,35 @@
         <div id="games-list" class="tiles" role="group" aria-labelledby="games-title"></div>
         <p id="games-soon"></p>
         <button id="games-close" class="plate" type="button"></button>
+      </div>
+      <div id="ranking" class="sheet" role="dialog" aria-labelledby="ranking-title" hidden>
+        <div id="ranking-head">
+          <p id="ranking-title" class="sheet-title"></p>
+          <p id="ranking-ends"></p>
+        </div>
+        <div id="ranking-body">
+          <div id="ranking-tabs" role="tablist">
+            <button id="ranking-week" class="plate" type="button" role="tab"></button>
+            <button id="ranking-all" class="plate" type="button" role="tab"></button>
+          </div>
+          <ol id="ranking-list" hidden></ol>
+          <p id="ranking-me" hidden></p>
+          <p id="ranking-status" role="status" hidden></p>
+          <div id="ranking-player" hidden>
+            <span id="ranking-as"></span>
+            <button id="ranking-rename" class="plate" type="button"></button>
+            <button id="ranking-leave" class="plate" type="button"></button>
+          </div>
+          <form id="ranking-join" hidden>
+            <p id="ranking-pitch"></p>
+            <div id="ranking-join-row">
+              <input id="ranking-name" type="text" autocomplete="nickname" spellcheck="false" />
+              <button id="ranking-join-go" class="plate" type="submit"></button>
+            </div>
+            <p id="ranking-privacy"></p>
+          </form>
+        </div>
+        <button id="ranking-close" class="plate" type="button"></button>
       </div>
       <div id="options" class="sheet" role="dialog" aria-labelledby="options-title" hidden>
         <p id="options-title" class="sheet-title"></p>
