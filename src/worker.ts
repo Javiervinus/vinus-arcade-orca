@@ -2,7 +2,9 @@
 // needs them (a panel cannot change what Orca shows), it hears agents while the panel is closed,
 // so what they finished is waiting to be told when the person comes back, it asks the app's
 // own CLI for every agent (src/cli.ts), to sit them at the office's desks, and it reads each
-// project's own icon from its folder (src/disk.ts) to hang it on the office wall.
+// project's own icon from its folder (src/disk.ts) to hang it on the office wall. And it is
+// the only part that talks to the world ranking's server (src/ranking/client.ts), for a person
+// who joined it.
 import type { OrcaWorkerApi } from 'orca/worker'
 import { readAgents, readProjectIcons } from './agents/cli'
 import { lastWorked, readIcon } from './agents/disk'
@@ -22,13 +24,39 @@ import {
   viewOf,
   type Ledger
 } from './agents/ledger'
+import { cleanNickname } from './ranking/api'
+import {
+  PLAYER_KEY,
+  RankingClient,
+  RankingError,
+  newSecret,
+  parsePlayer,
+  rememberWeek,
+  worthSending,
+  type Fetch,
+  type JoinResult,
+  type Player,
+  type SubmitResult
+} from './ranking/client'
 
 /** The storage key the worker alone writes. */
 const LEDGER_KEY = 'ledger'
 
-/** What the worker reads outside Orca's plugin API: the app's own CLI and the projects'
- *  folders. The tests put their own in its place. */
-export const outside = { readAgents, readProjectIcons, lastWorked, readIcon }
+/** What the worker reaches outside Orca's plugin API: the app's own CLI, the projects' folders
+ *  and the ranking's server. The tests put their own in its place. */
+export const outside: {
+  readAgents: typeof readAgents
+  readProjectIcons: typeof readProjectIcons
+  lastWorked: typeof lastWorked
+  readIcon: typeof readIcon
+  fetch: Fetch
+} = {
+  readAgents,
+  readProjectIcons,
+  lastWorked,
+  readIcon,
+  fetch: (url, init) => fetch(url, init)
+}
 
 export default function activate(orca: OrcaWorkerApi): void {
   let ledger: Ledger | null = null
@@ -46,6 +74,20 @@ export default function activate(orca: OrcaWorkerApi): void {
 
   function save(current: Ledger): Promise<void> {
     return orca.storage.set(LEDGER_KEY, current)
+  }
+
+  const ranking = new RankingClient((url, init) => outside.fetch(url, init))
+  // Who the person is in the ranking changes one request at a time, like the ledger.
+  let rankingQueue: Promise<unknown> = Promise.resolve()
+
+  function rankingTurn<T>(work: (player: Player | null) => Promise<T>): Promise<T> {
+    const turn = rankingQueue.then(async () => work(parsePlayer(await orca.storage.get(PLAYER_KEY))))
+    rankingQueue = turn.catch((error: unknown) => orca.log(`ranking: ${String(error)}`))
+    return turn
+  }
+
+  function keepPlayer(player: Player | null): Promise<void> {
+    return player ? orca.storage.set(PLAYER_KEY, player) : orca.storage.delete(PLAYER_KEY)
   }
 
   /** Asks Orca what its workspaces are called; `alsoFor` is one an agent was just seen in. */
@@ -145,6 +187,77 @@ export default function activate(orca: OrcaWorkerApi): void {
       const seen = markSeen(current)
       if (seen) await save(current)
       return { seen }
+    })
+  )
+
+  orca.panels.handle('ranking.read', ({ game }) =>
+    rankingTurn(async (player) => {
+      try {
+        const board = await ranking.board(game, player)
+        if (player) {
+          rememberWeek(player, game, board.week, board.week.me)
+          await keepPlayer(player)
+        }
+        return { name: player?.name ?? null, board }
+      } catch (error) {
+        orca.log(String(error))
+        return { name: player?.name ?? null, board: null }
+      }
+    })
+  )
+
+  orca.panels.handle('ranking.join', ({ name }) =>
+    rankingTurn(async (player): Promise<JoinResult> => {
+      const nickname = cleanNickname(name)
+      if (!nickname) return { ok: false, problem: 'name' }
+      const next: Player = player
+        ? { ...player, name: nickname }
+        : { secret: newSecret(), name: nickname, weekBest: {} }
+      try {
+        await ranking.join(next)
+      } catch (error) {
+        orca.log(String(error))
+        const status = error instanceof RankingError ? error.status : 0
+        return { ok: false, problem: status === 400 ? 'name' : status === 429 ? 'soon' : 'offline' }
+      }
+      await keepPlayer(next)
+      return { ok: true, name: nickname }
+    })
+  )
+
+  orca.panels.handle('ranking.leave', () =>
+    rankingTurn(async (player) => {
+      if (!player) return { left: true }
+      try {
+        await ranking.leave(player)
+      } catch (error) {
+        orca.log(String(error))
+        return { left: false }
+      }
+      await keepPlayer(null)
+      return { left: true }
+    })
+  )
+
+  orca.panels.handle('ranking.submit', ({ game, score, record }) =>
+    rankingTurn(async (player): Promise<SubmitResult> => {
+      if (!player || !worthSending(player, game, score, Date.now())) return { status: 'skipped' }
+      try {
+        const verdict = await ranking.submit(player, { game, record })
+        if (verdict.status === 'counted') {
+          rememberWeek(player, game, verdict, verdict.week)
+          await keepPlayer(player)
+        }
+        return verdict
+      } catch (error) {
+        orca.log(String(error))
+        // The server no longer knows this player: they join again from the panel.
+        if (error instanceof RankingError && error.status === 403) {
+          await keepPlayer(null)
+          return { status: 'refused', reason: 'not in the ranking' }
+        }
+        return { status: 'offline' }
+      }
     })
   )
 }

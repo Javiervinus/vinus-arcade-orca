@@ -140,3 +140,116 @@ test('opening the panel shows every agent Orca has and the projects last worked 
   assert.equal(await worker.request('project.icon', { name: '/etc' }), null)
   await worker.deactivate()
 })
+
+/** A ranking server in memory: it answers what each test sets and keeps what it was sent. */
+function fakeServer(answers: Record<string, unknown[]>) {
+  const sent: { method: string; path: string; auth: string | null; body: unknown }[] = []
+  main.outside.fetch = async (url, init) => {
+    const path = new URL(url).pathname
+    const method = init.method ?? 'GET'
+    const headers = (init.headers ?? {}) as Record<string, string>
+    sent.push({
+      method,
+      path,
+      auth: headers.authorization ?? null,
+      body: typeof init.body === 'string' ? JSON.parse(init.body) : null
+    })
+    const key = `${method} ${path.replace(/runs\/[^/]+$/, 'runs/:id')}`
+    const answer = answers[key]?.shift() ?? { status: 404, body: { error: 'not found' } }
+    const { status, body } = answer as { status: number; body: unknown }
+    return new Response(status === 204 ? null : JSON.stringify(body), { status })
+  }
+  return sent
+}
+
+const WEEK = { period: '2026-W46', endsAt: Date.now() + 86_400_000 }
+const BOARD = {
+  game: 'blip',
+  week: { ...WEEK, top: [], me: null },
+  all: { top: [], me: null }
+}
+const COUNTED = (score: number) => ({
+  status: 200,
+  body: {
+    status: 'counted',
+    score,
+    week: { rank: 1, score },
+    all: { rank: 1, score },
+    ...WEEK
+  }
+})
+
+test('nothing reaches the ranking until the person joins it', async () => {
+  const sent = fakeServer({})
+  const worker = await mountWorker(main, { host: mockHost() })
+  const result = await worker.request('ranking.submit', { game: 'blip', score: 12, record: {} })
+  assert.deepEqual(result, { status: 'skipped' })
+  assert.deepEqual(await worker.request('ranking.join', { name: ' ' }), { ok: false, problem: 'name' })
+  assert.equal(sent.length, 0)
+  await worker.deactivate()
+})
+
+test('joins with a nickname, sends a run that beats the week and skips one that does not', async () => {
+  const sent = fakeServer({
+    'PUT /v1/me': [{ status: 200, body: { name: 'Ada' } }],
+    'POST /v1/runs': [{ status: 200, body: { status: 'checking', run: '0'.repeat(36) } }],
+    'POST /v1/runs/:id': [COUNTED(20)],
+    'GET /v1/boards/blip': [{ status: 200, body: BOARD }]
+  })
+  const worker = await mountWorker(main, { host: mockHost() })
+  assert.deepEqual(await worker.request('ranking.join', { name: '  Ada  ' }), { ok: true, name: 'Ada' })
+  const verdict = await worker.request('ranking.submit', { game: 'blip', score: 20, record: { r: 1 } })
+  assert.equal(verdict.status, 'counted')
+  // A run below the best of the week would change nothing: it stays home.
+  assert.deepEqual(
+    await worker.request('ranking.submit', { game: 'blip', score: 15, record: {} }),
+    { status: 'skipped' }
+  )
+  const view = await worker.request('ranking.read', { game: 'blip' })
+  assert.equal(view.name, 'Ada')
+  assert.deepEqual(
+    sent.map((request) => `${request.method} ${request.path.replace(/0{36}/, ':id')}`),
+    ['PUT /v1/me', 'POST /v1/runs', 'POST /v1/runs/:id', 'GET /v1/boards/blip']
+  )
+  // The same secret every time, and only the nickname and the run in the bodies.
+  const secrets = new Set(sent.map((request) => request.auth))
+  assert.equal(secrets.size, 1)
+  assert.match([...secrets][0] ?? '', /^Bearer [A-Za-z0-9_-]{43}$/)
+  assert.deepEqual(sent[0]?.body, { name: 'Ada' })
+  assert.deepEqual(sent[1]?.body, { game: 'blip', record: { r: 1 } })
+  await worker.deactivate()
+})
+
+test('a player the server forgot joins again, and leaving forgets the player here too', async () => {
+  fakeServer({
+    'PUT /v1/me': [
+      { status: 200, body: { name: 'Ada' } },
+      { status: 200, body: { name: 'Ada' } }
+    ],
+    'POST /v1/runs': [{ status: 403, body: { error: 'not in the ranking' } }],
+    'DELETE /v1/me': [{ status: 204, body: null }],
+    'GET /v1/boards/blip': [
+      { status: 200, body: BOARD },
+      { status: 200, body: BOARD }
+    ]
+  })
+  const worker = await mountWorker(main, { host: mockHost() })
+  await worker.request('ranking.join', { name: 'Ada' })
+  const refused = await worker.request('ranking.submit', { game: 'blip', score: 3, record: {} })
+  assert.deepEqual(refused, { status: 'refused', reason: 'not in the ranking' })
+  assert.equal((await worker.request('ranking.read', { game: 'blip' })).name, null)
+  await worker.request('ranking.join', { name: 'Ada' })
+  assert.deepEqual(await worker.request('ranking.leave'), { left: true })
+  assert.equal((await worker.request('ranking.read', { game: 'blip' })).name, null)
+  await worker.deactivate()
+})
+
+test('a server out of reach leaves the games playing', async () => {
+  main.outside.fetch = async () => {
+    throw new TypeError('fetch failed')
+  }
+  const worker = await mountWorker(main, { host: mockHost() })
+  assert.deepEqual(await worker.request('ranking.join', { name: 'Ada' }), { ok: false, problem: 'offline' })
+  assert.deepEqual(await worker.request('ranking.read', { game: 'blip' }), { name: null, board: null })
+  await worker.deactivate()
+})
