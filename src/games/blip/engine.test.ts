@@ -171,25 +171,59 @@ test('a boost ends with the run', () => {
   assert.equal(game.boostLeft, 0)
 })
 
-test('boosts are found in the run, rarely, one at a time and never while one is running', () => {
-  const game = createGame(WIDTH, HEIGHT, 3)
+/** The boosts the pilot meets in a run of `seconds`, by the gate they come with. */
+function boostsMet(seed: number, seconds: number): { gates: number[]; game: Game } {
+  const game = createGame(WIDTH, HEIGHT, seed)
   press(game)
   const fly = pilotOf(game)
-  const found: number[] = []
-  steps(game, 240, () => {
+  const gates: number[] = []
+  steps(game, seconds, () => {
     fly()
     const boosts = game.tokens.filter((token) => token.boost)
     assert.ok(boosts.length <= 1)
     for (const token of boosts) {
-      if (found.includes(token.id)) continue
-      found.push(token.id)
+      if (gates.includes(token.id)) continue
+      gates.push(token.id)
       assert.equal(game.boostLeft, 0)
     }
   })
-  assert.ok(game.phase === 'playing', `the pilot fell at ${game.score}`)
-  assert.ok(found.length > 0, 'no boost in four minutes')
-  assert.ok((found[0] ?? 0) >= RULES.boostFirstGate)
-  found.slice(1).forEach((id, i) => assert.ok(id - (found[i] ?? 0) >= RULES.boostGap))
+  return { gates, game }
+}
+
+test('boosts are rare, one at a time, never while one runs, and far from each other', () => {
+  const { gates, game } = boostsMet(3, 300)
+  assert.ok(gates.length > 0, `no boost in a run of ${game.gateCount} gates`)
+  gates.slice(1).forEach((id, i) => assert.ok(id - (gates[i] ?? 0) >= RULES.boostGap))
+})
+
+test('many short runs see no boost at all', () => {
+  let without = 0
+  for (let seed = 1; seed <= 20; seed += 1) if (boostsMet(seed, 25).gates.length === 0) without += 1
+  assert.ok(without >= 10, `only ${without} of 20 runs of 25 seconds had no boost`)
+})
+
+test('a boost hangs off the easy line between two gaps', () => {
+  const game = createGame(WIDTH, HEIGHT, 3)
+  press(game)
+  const fly = pilotOf(game)
+  let checked = false
+  steps(game, 300, () => {
+    fly()
+    for (const token of game.tokens) {
+      if (!token.boost || checked) continue
+      const before = game.gates.filter((gate) => gate.id < token.id).at(-1)
+      const after = game.gates.find((gate) => gate.id === token.id)
+      if (!before || !after) continue
+      const middle = (before.gapY + after.gapY) / 2
+      const floor = floorY(game) - RULES.bottomMargin
+      // Off the line, unless the edge of the room held it back.
+      if (token.y > RULES.topMargin && token.y < floor) {
+        assert.ok(Math.abs(Math.abs(token.y - middle) - RULES.boostOffset) < 1e-9)
+      }
+      checked = true
+    }
+  })
+  assert.ok(checked, 'no boost to check')
 })
 
 test('coins sit in some gaps and not others', () => {
@@ -202,5 +236,5 @@ test('coins sit in some gaps and not others', () => {
     for (const token of game.tokens) if (!token.boost && token.prize === undefined) coins.add(token.id)
   })
   const share = coins.size / game.gateCount
-  assert.ok(share > 0.1 && share < 0.45, `a coin in ${Math.round(share * 100)}% of the gaps`)
+  assert.ok(share > 0.3 && share < 0.7, `a coin in ${Math.round(share * 100)}% of the gaps`)
 })

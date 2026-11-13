@@ -29,14 +29,18 @@ export const RULES = {
   hitHalfWidth: 5,
   hitHalfHeight: 5,
   /** The chance that a token sits between two gates: where the coins are is never known. */
-  tokenChance: 0.25,
+  tokenChance: 0.5,
   tokenRadius: 7,
   tokenSpread: 24,
-  /** The chance that a token is a boost instead of a coin, once boosts may come: never before
-   *  this gate of the run, and never fewer than `boostGap` gates after the last one. */
-  boostChance: 0.1,
-  boostFirstGate: 10,
-  boostGap: 20,
+  /** The chance that a token is a boost instead of a coin. It is small at the start, so a
+   *  boost there is luck, and grows with each gate up to a most; many runs see none. */
+  boostChanceStart: 0.01,
+  boostChancePerGate: 0.001,
+  boostChanceMax: 0.08,
+  /** Gates after one boost before another can come. */
+  boostGap: 40,
+  /** A boost never sits on the easy line between two gaps: this far above or below it. */
+  boostOffset: 18,
   /** How long a boost lasts, and how many times a coin caught meanwhile counts. */
   boostSeconds: 12,
   boostTimes: 2,
@@ -224,13 +228,17 @@ function spawnGate(game: Game, x: number): void {
     const y = (previous.gapY + gapY) / 2 + (random(game) - 0.5) * RULES.tokenSpread
     // One boost at a time: none while one is running or already on its way, and few in a run.
     const free = game.boostLeft <= 0 && !game.tokens.some((token) => token.boost)
-    const due = id >= RULES.boostFirstGate && id - game.lastBoostGate >= RULES.boostGap
-    const boost = random(game) < RULES.boostChance && free && due
+    const due = id - game.lastBoostGate >= RULES.boostGap
+    const chance = Math.min(RULES.boostChanceMax, RULES.boostChanceStart + id * RULES.boostChancePerGate)
+    const boost = random(game) < chance && free && due
     if (boost) game.lastBoostGate = id
+    // The boost hangs off the line the agent would fly anyway: catching it is a risk.
+    const middle = (previous.gapY + gapY) / 2
+    const side = random(game) < 0.5 ? -1 : 1
     game.tokens.push({
       id,
       x: x - RULES.gateSpacing / 2 + RULES.gateWidth / 2,
-      y: clamp(y, RULES.topMargin, floorY(game) - RULES.bottomMargin),
+      y: clamp(boost ? middle + side * RULES.boostOffset : y, RULES.topMargin, floorY(game) - RULES.bottomMargin),
       ...(boost ? { boost: true as const } : {})
     })
   }
