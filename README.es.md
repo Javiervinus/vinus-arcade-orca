@@ -62,7 +62,8 @@ Lleva a un pequeño agente entre las estanterías de una oficina al anochecer.
   te espera. Con pocos agentes, la pared se llena con los proyectos en los que trabajaste último.
 - **Monedas**: se ganan jugando, y solo jugando. Una moneda que atrapas vale 1; cada
   juego puede tener su manera de hacer que cuenten más, que se encuentra jugando, como la ficha
-  x2 de Blip.
+  x2 de Blip. Las monedas, los personajes y los récords se guardan en esta computadora: las
+  actualizaciones los conservan y desinstalar el plugin los borra.
 - **Entregas**: cuando un agente termina una tarea te lo dice y, si estás en plena partida, manda
   su proyecto al campo de juego: atrápalo y son 5 monedas. Un turno que interrumpiste no cuenta
   como tarea terminada.
@@ -80,7 +81,8 @@ Lleva a un pequeño agente entre las estanterías de una oficina al anochecer.
 lunes a domingo, en UTC) y de siempre. Para estar en él, elige ahí un apodo; desde entonces se
 envía cada partida que supere tu mejor puntaje de la semana, y la tarjeta te dice tu puesto al
 terminar. Puedes cambiar el apodo o salir: al salir se borran del servidor tu apodo y todos tus
-puntajes.
+puntajes. Desinstalar el plugin no te saca del ranking: tus puntajes quedan y, sin los datos del
+plugin, ya no puedes borrarlos; si quieres que desaparezcan, sal del ranking antes.
 
 ![El ranking mundial: las mejores partidas de la semana, tu puesto al terminar una partida y la entrada con un apodo](media/screenshot-ranking.png)
 

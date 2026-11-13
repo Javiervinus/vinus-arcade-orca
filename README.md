@@ -59,6 +59,8 @@ Fly a little agent between the bookshelves of an office at dusk.
   With few agents, the wall fills with the projects you last worked in.
 - **Coins**: you earn them playing, and only playing. A coin you catch is worth 1; a game
   may have its own way to make them count more, found while playing, like the x2 tile of Blip.
+  Coins, characters and records are kept on this computer: updates keep them, and uninstalling
+  the plugin deletes them.
 - **Deliveries**: when an agent finishes a task it tells you, and if you are in the middle of a
   run it sends its project in: catch it for 5 coins. A turn you interrupted is not a finished
   task.
@@ -76,6 +78,8 @@ Fly a little agent between the bookshelves of an office at dusk.
 UTC) and of all time. To be on it, pick a nickname there; from then on every run that beats your
 best of the week is sent, and the card tells you your place when the run ends. You can change
 your nickname, or leave: leaving deletes your nickname and every score of yours from the server.
+Uninstalling the plugin does not take you off it: your scores stay, and without the plugin's
+data you can no longer delete them, so leave the ranking first if you want them gone.
 
 ![The world ranking: the best runs of the week, your place on it after a run, and the way in with a nickname](media/screenshot-ranking.png)
 
