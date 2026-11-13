@@ -1,0 +1,15 @@
+{
+  "$schema": "https://unpkg.com/wrangler@4.161.0/config-schema.json",
+  "name": "vinus-arcade",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": false },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vinus-arcade",
+      "database_id": "7751370c-b43c-4f6d-b1e4-87587b450a18",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
