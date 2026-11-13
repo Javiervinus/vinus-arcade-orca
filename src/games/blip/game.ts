@@ -1,5 +1,5 @@
 // Blip as the arcade plays it: the rules of src/games/blip/engine.ts, drawn by render.ts.
-import type { GameDefinition, GameHost, GamePhase, GameSession } from '../../core/game'
+import type { GameDefinition, GameHost, GamePhase, GameSession, RunProof } from '../../core/game'
 import type { Paint } from '../../core/paint'
 import {
   RULES,
@@ -12,11 +12,14 @@ import {
   type GameEvent
 } from './engine'
 import { Effects, render } from './render'
+import { Recorder } from './replay'
 import { BLIP_SOUNDS } from './sounds'
 
 class BlipSession implements GameSession {
   private readonly game = createGame(1, 1, Date.now())
   private readonly effects: Effects
+  /** Writes down each run, for the ranking's server to fly it again. */
+  private readonly recorder = new Recorder()
   /** Seconds not yet played: the rules move in steps of a fixed length. */
   private carry = 0
 
@@ -37,15 +40,19 @@ class BlipSession implements GameSession {
   }
 
   resize(width: number, height: number): void {
+    if (width === this.game.width && height === this.game.height) return
     resize(this.game, width, height)
+    this.recorder.resized(this.game)
   }
 
   press(): void {
+    this.recorder.pressing(this.game)
     for (const event of press(this.game)) this.handle(event)
   }
 
   restart(): void {
     restart(this.game)
+    this.recorder.reset()
     this.effects.reset()
     this.carry = 0
   }
@@ -54,6 +61,7 @@ class BlipSession implements GameSession {
     this.carry += dt
     while (this.carry >= RULES.step) {
       this.carry -= RULES.step
+      this.recorder.stepping(this.game)
       for (const event of advance(this.game, RULES.step)) this.handle(event)
     }
     this.effects.update(dt)
@@ -64,12 +72,19 @@ class BlipSession implements GameSession {
   }
 
   deliver(project: string): boolean {
-    return deliver(this.game, project)
+    const taken = deliver(this.game, project)
+    if (taken) this.recorder.delivered(this.game)
+    return taken
   }
 
   celebrate(moment: 'beaten' | 'record'): void {
     if (moment === 'beaten') this.effects.beat(this.game)
     else this.effects.rain(this.game)
+  }
+
+  proof(): RunProof | null {
+    const record = this.recorder.record(this.game)
+    return record ? { ruleset: record.ruleset, score: record.score, record } : null
   }
 
   private handle(event: GameEvent): void {

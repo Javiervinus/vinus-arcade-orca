@@ -38,6 +38,15 @@ export interface GameHost {
   delivery(at: Point): void
 }
 
+/** A finished run as the ranking's server needs it to fly it again, in the game's own form: a
+ * score only counts once the server got the same score from the record. */
+export interface RunProof {
+  /** The rules the run was flown with: the server turns down rules it does not know. */
+  ruleset: number
+  score: number
+  record: unknown
+}
+
 /** One game being played: the arcade drives it and draws it. */
 export interface GameSession {
   readonly phase: GamePhase
@@ -57,6 +66,8 @@ export interface GameSession {
   deliver(project: string): boolean
   /** The run just passed the best score (`beaten`), or ended as the new best (`record`). */
   celebrate(moment: 'beaten' | 'record'): void
+  /** The record of the run that just ended, for the ranking; null while none has. */
+  proof(): RunProof | null
 }
 
 /** The texts of a game that the arcade shows for it. */
