@@ -35,9 +35,11 @@ import {
   COINS_PER_DELIVERY,
   COINS_PER_TOKEN,
   PRICES,
+  PRICES_UNTIL_0_2,
   isAccessoryId,
   isSkinId,
   parseBought,
+  spentOn,
   walletOf,
   type ItemId
 } from './core/wardrobe'
@@ -126,6 +128,8 @@ const notice = new Notice({
 /** Coins earned playing, in every game, ever. */
 let earned = 0
 let bought: ItemId[] = []
+/** Coins spent on what was bought, each thing at the price it had when it was bought. */
+let spent = 0
 let choice: SkinChoice = 'auto'
 let autoSkin: SkinId = 'blip'
 let accessory: AccessoryId | null = null
@@ -165,7 +169,7 @@ function look(): Look {
 }
 
 function coins(): number {
-  return walletOf(earned, bought)
+  return walletOf(earned, spent)
 }
 
 function save(key: string, value: string | number | boolean | string[] | null): void {
@@ -450,7 +454,9 @@ const wardrobe = new Wardrobe(
     buy(id) {
       if (coins() < PRICES[id]) return
       bought = [...bought, id]
+      spent += PRICES[id]
       save(STORE.bought, bought)
+      save(STORE.spent, spent)
       office.setCoins(coins())
       showCard()
       sound.unlock()
@@ -681,6 +687,7 @@ async function loadStored(): Promise<void> {
       storedBest,
       storedCoins,
       storedBought,
+      storedSpent,
       storedSkin,
       storedAccessory,
       storedSound,
@@ -692,6 +699,7 @@ async function loadStored(): Promise<void> {
       orca.storage.get(bestKey(definition.id)),
       orca.storage.get(STORE.coins),
       orca.storage.get(STORE.bought),
+      orca.storage.get(STORE.spent),
       orca.storage.get(STORE.skin),
       orca.storage.get(STORE.accessory),
       orca.storage.get(STORE.sound),
@@ -703,6 +711,13 @@ async function loadStored(): Promise<void> {
     if (typeof storedBest === 'number' && storedBest > 0) best = Math.floor(storedBest)
     if (typeof storedCoins === 'number' && storedCoins > 0) earned = Math.floor(storedCoins)
     bought = parseBought(storedBought)
+    if (typeof storedSpent === 'number' && storedSpent >= 0) {
+      spent = Math.floor(storedSpent)
+    } else {
+      // Bought before what was spent was kept: at the prices of then, written down once.
+      spent = spentOn(bought, PRICES_UNTIL_0_2)
+      if (bought.length > 0) save(STORE.spent, spent)
+    }
     if (storedSkin === 'auto' || isSkinId(storedSkin)) choice = storedSkin
     if (isAccessoryId(storedAccessory)) accessory = storedAccessory
     if (typeof storedSound === 'boolean') sound.enabled = storedSound

@@ -5,6 +5,8 @@ export const STORE = {
   skin: 'skin',
   accessory: 'accessory',
   bought: 'bought',
+  /** Coins spent on what was bought, at the price it had then. */
+  spent: 'spent',
   sound: 'sound',
   hideNames: 'hideNames',
   pauseOnNeed: 'pauseOnNeed',
