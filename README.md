@@ -37,11 +37,12 @@ Fly a little agent between the bookshelves of an office at dusk.
 
 - **Space**, **↑**, **W**, **Enter** or a click: fly, start, try again.
 - **P** or **Esc**: pause. **M**: sound on or off.
-- Each bookshelf is a point and each coin one more. Coins sit in some gaps and not in others, so
-  you never know where the next one is. The game speeds up and the gaps narrow, up to a limit.
-- Once in a while a gold **x2** tile flies by instead of a coin: catch it and the coins you catch
-  count double for 12 seconds. It never comes in the first bookshelves of a run, and never soon
-  after the last one. A bar under the score shows the time left, and it ends with the run.
+- Each bookshelf is a point and each coin one more. Coins sit in about half the gaps, at random,
+  so you never know where the next one is. The game speeds up and the gaps narrow, up to a limit.
+- Rarely, a gold **x2** tile flies by instead of a coin: catch it and the coins you catch count
+  double for 12 seconds. It hangs off the easy line, so going for it is a risk. It gets a little
+  likelier the further you go, many runs never see one, and after one it takes long for the
+  next. A bar under the score shows the time left, and it ends with the run.
 - The game pauses by itself when you click away, so typing in a terminal never costs you a run.
 - When you pass your best score in the middle of a run, the score turns gold; a run that ends as
   the new best gets confetti.

@@ -7,8 +7,11 @@ What changes in each version of Vinus Arcade. Versions follow [semantic versioni
 - **World ranking**: the ten best runs of each game this week and of all time. Joining takes a
   nickname, and nothing is sent before that. The server plays each run again before it counts,
   so a score cannot be made up, and leaving deletes everything it kept.
-- **Rarer coins and x2 tiles in Blip**: coins sit in some gaps at random instead of every third
-  one, and the x2 tile comes less often, never early in a run and never soon after the last.
+- **Coins and the x2 tile in Blip**: coins sit in about half the gaps, at random, instead of every
+  third one. The x2 tile is rare: it gets likelier the further a run goes (about one run in five
+  of 20 bookshelves sees one), it hangs off the easy line, and the next one takes 40 bookshelves.
+- **Characters and accessories cost more**, from 75 to 900 coins. What you bought before keeps
+  the price you paid: your coins do not go down.
 - **Privacy**, in the README: what the plugin does with the access Orca warns about, and what
   leaves your computer (only your nickname and your runs, if you join the ranking).
 

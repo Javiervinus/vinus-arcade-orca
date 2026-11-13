@@ -37,13 +37,14 @@ Lleva a un pequeño agente entre las estanterías de una oficina al anochecer.
 
 - **Espacio**, **↑**, **W**, **Enter** o un clic: volar, empezar, reintentar.
 - **P** o **Esc**: pausa. **M**: sonido sí o no.
-- Cada estantería es un punto y cada moneda, uno más. Las monedas aparecen en algunos huecos y en
-  otros no, así que nunca sabes dónde estará la siguiente. El juego acelera y los huecos se
-  estrechan hasta un límite.
-- Cada tanto, en lugar de una moneda pasa una ficha dorada **x2**: atrápala y las monedas que
-  atrapes cuentan el doble por 12 segundos. Nunca sale en las primeras estanterías de una partida
-  ni poco después de la anterior. Una barra bajo el puntaje muestra cuánto le queda, y se acaba
-  con la partida.
+- Cada estantería es un punto y cada moneda, uno más. Las monedas aparecen en más o menos la
+  mitad de los huecos, al azar, así que nunca sabes dónde estará la siguiente. El juego acelera y
+  los huecos se estrechan hasta un límite.
+- Rara vez, en lugar de una moneda pasa una ficha dorada **x2**: atrápala y las monedas que
+  atrapes cuentan el doble por 12 segundos. Queda fuera de la línea fácil, así que ir por ella es
+  un riesgo. Se vuelve un poco más probable mientras más avanzas, muchas partidas no ven ninguna y,
+  después de una, la siguiente tarda. Una barra bajo el puntaje muestra cuánto le queda, y se
+  acaba con la partida.
 - El juego se pausa solo cuando haces clic fuera, así que escribir en una terminal nunca te cuesta
   una partida.
 - Al pasar tu récord en plena partida, el puntaje se vuelve dorado; si la partida termina como
