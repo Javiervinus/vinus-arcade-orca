@@ -1,4 +1,5 @@
 import { assert, test } from 'orca/testing'
+import { pilotOf } from './pilot'
 import {
   RULES,
   advance,
@@ -21,53 +22,6 @@ function steps(game: Game, seconds: number, onStep?: () => void): string[] {
     for (const event of advance(game, RULES.step)) seen.push(event.type)
   }
   return seen
-}
-
-const PRESS_EVERY = 0.12
-const FORESIGHT = 1.5
-
-/** A player that only reacts: flaps when the agent sinks to the bottom of the gap ahead. */
-function wantsPress(game: Game): boolean {
-  const next = game.gates.find(
-    (gate) => gate.x + RULES.gateWidth > game.agent.x - RULES.hitHalfWidth
-  )
-  const limit = next ? next.gapY + next.gap / 2 - RULES.hitHalfHeight - 3 : game.height / 2
-  return game.agent.y + game.agent.vy * 0.03 >= limit
-}
-
-/** Does the run last if the player presses now, or holds off, and then only reacts? */
-function survives(game: Game, pressNow: boolean): boolean {
-  const copy = structuredClone(game)
-  let pressedAt = copy.time
-  if (pressNow) press(copy)
-  for (let i = 0; i < FORESIGHT / RULES.step; i += 1) {
-    if (copy.time - pressedAt >= PRESS_EVERY && wantsPress(copy)) {
-      press(copy)
-      pressedAt = copy.time
-    }
-    advance(copy, RULES.step)
-    if (copy.phase !== 'playing') return false
-  }
-  return true
-}
-
-/** A player that looks ahead, at most one press every PRESS_EVERY seconds like a person. */
-function pilot(): (game: Game) => void {
-  let pressedAt = 0
-  return (game) => {
-    if (game.phase !== 'playing' || game.time - pressedAt < PRESS_EVERY) return
-    const hold = survives(game, false)
-    const go = survives(game, true)
-    if (hold === go ? wantsPress(game) : go) {
-      press(game)
-      pressedAt = game.time
-    }
-  }
-}
-
-function pilotOf(game: Game): () => void {
-  const fly = pilot()
-  return () => fly(game)
 }
 
 test('hovers until the first press and never falls before it', () => {
@@ -217,22 +171,36 @@ test('a boost ends with the run', () => {
   assert.equal(game.boostLeft, 0)
 })
 
-test('boosts are found in the run, one at a time and never while one is running', () => {
+test('boosts are found in the run, rarely, one at a time and never while one is running', () => {
   const game = createGame(WIDTH, HEIGHT, 3)
   press(game)
   const fly = pilotOf(game)
-  let found = 0
-  let known = new Set<number>()
-  steps(game, 60, () => {
+  const found: number[] = []
+  steps(game, 240, () => {
     fly()
     const boosts = game.tokens.filter((token) => token.boost)
     assert.ok(boosts.length <= 1)
     for (const token of boosts) {
-      if (known.has(token.id)) continue
-      known = new Set([token.id])
-      found += 1
+      if (found.includes(token.id)) continue
+      found.push(token.id)
       assert.equal(game.boostLeft, 0)
     }
   })
-  assert.ok(found > 0, 'no boost in a minute')
+  assert.ok(game.phase === 'playing', `the pilot fell at ${game.score}`)
+  assert.ok(found.length > 0, 'no boost in four minutes')
+  assert.ok((found[0] ?? 0) >= RULES.boostFirstGate)
+  found.slice(1).forEach((id, i) => assert.ok(id - (found[i] ?? 0) >= RULES.boostGap))
+})
+
+test('coins sit in some gaps and not others', () => {
+  const game = createGame(WIDTH, HEIGHT, 5)
+  press(game)
+  const fly = pilotOf(game)
+  const coins = new Set<number>()
+  steps(game, 90, () => {
+    fly()
+    for (const token of game.tokens) if (!token.boost && token.prize === undefined) coins.add(token.id)
+  })
+  const share = coins.size / game.gateCount
+  assert.ok(share > 0.1 && share < 0.45, `a coin in ${Math.round(share * 100)}% of the gaps`)
 })

@@ -28,12 +28,15 @@ export const RULES = {
   /** Half the size of the agent's hit box. */
   hitHalfWidth: 5,
   hitHalfHeight: 5,
-  /** A token sits between two gates, once every this many gates. */
-  tokenEvery: 3,
+  /** The chance that a token sits between two gates: where the coins are is never known. */
+  tokenChance: 0.25,
   tokenRadius: 7,
   tokenSpread: 24,
-  /** How often the token between two gates is a boost instead of a coin. */
-  boostChance: 0.2,
+  /** The chance that a token is a boost instead of a coin, once boosts may come: never before
+   *  this gate of the run, and never fewer than `boostGap` gates after the last one. */
+  boostChance: 0.1,
+  boostFirstGate: 10,
+  boostGap: 20,
   /** How long a boost lasts, and how many times a coin caught meanwhile counts. */
   boostSeconds: 12,
   boostTimes: 2,
@@ -87,6 +90,8 @@ export interface Game {
   score: number
   /** Seconds of boost left; 0 without one. It ends with the run. */
   boostLeft: number
+  /** The gate the last boost came with. */
+  lastBoostGate: number
   speed: number
   /** Gates made so far in this run. */
   gateCount: number
@@ -160,6 +165,7 @@ export function createGame(width: number, height: number, seed: number): Game {
     tokens: [],
     score: 0,
     boostLeft: 0,
+    lastBoostGate: -RULES.boostGap,
     speed: RULES.speedStart,
     gateCount: 0,
     rng: seed | 0
@@ -176,6 +182,7 @@ export function restart(game: Game): void {
   game.tokens = []
   game.score = 0
   game.boostLeft = 0
+  game.lastBoostGate = -RULES.boostGap
   game.speed = RULES.speedStart
   game.gateCount = 0
 }
@@ -213,11 +220,13 @@ function spawnGate(game: Game, x: number): void {
   game.gateCount += 1
   game.gates.push({ id, x, gapY, gap, variant, passed: false })
 
-  if (previous && id % RULES.tokenEvery === RULES.tokenEvery - 1) {
+  if (previous && random(game) < RULES.tokenChance) {
     const y = (previous.gapY + gapY) / 2 + (random(game) - 0.5) * RULES.tokenSpread
-    // One boost at a time: none while one is running or already on its way.
+    // One boost at a time: none while one is running or already on its way, and few in a run.
     const free = game.boostLeft <= 0 && !game.tokens.some((token) => token.boost)
-    const boost = random(game) < RULES.boostChance && free
+    const due = id >= RULES.boostFirstGate && id - game.lastBoostGate >= RULES.boostGap
+    const boost = random(game) < RULES.boostChance && free && due
+    if (boost) game.lastBoostGate = id
     game.tokens.push({
       id,
       x: x - RULES.gateSpacing / 2 + RULES.gateWidth / 2,
