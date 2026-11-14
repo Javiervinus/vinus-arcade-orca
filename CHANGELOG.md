@@ -2,6 +2,14 @@
 
 What changes in each version of Vinus Arcade. Versions follow [semantic versioning](https://semver.org).
 
+## Unreleased
+
+- **Your best run before joining the ranking counts**: it waits on your computer until you pick a
+  nickname, the ranking shows where it would land, and it goes in with you. A run the server could
+  not be reached for waits too, and goes in the next time you play or open the ranking.
+- **A new best invites you to the ranking**: if you have not joined, the card of the record shows
+  "See where it lands", which opens the board with your run in its place and the nickname box.
+
 ## 0.3.0 (2026-11-13)
 
 - **World ranking**: the ten best runs of each game this week and of all time. Joining takes a

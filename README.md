@@ -76,7 +76,10 @@ Fly a little agent between the bookshelves of an office at dusk.
 
 **Ranking**, on the card, shows the ten best runs of each game this week (Monday to Sunday,
 UTC) and of all time. To be on it, pick a nickname there; from then on every run that beats your
-best of the week is sent, and the card tells you your place when the run ends. You can change
+best of the week is sent, and the card tells you your place when the run ends. Your best run of
+the week before you join is not lost: it waits on your computer, the board shows where it would
+land, and it goes in with your nickname. A run the server could not be reached for waits the same
+way, and goes in the next time you play or open the ranking. You can change
 your nickname, or leave: leaving deletes your nickname and every score of yours from the server.
 Uninstalling the plugin does not take you off it: your scores stay, and without the plugin's
 data you can no longer delete them, so leave the ranking first if you want them gone.
@@ -115,7 +118,7 @@ It needs the Orca desktop app, 1.4.248 or newer.
 | `agent:read` | To hear when an agent starts working, waits, gets blocked or finishes. |
 | `workspace:read` | To read the names and folders of your workspaces' projects, for the plaques and the notices. |
 | `workspace:write` | To show the workspace of the agent you chose to go to. |
-| `storage:own` | To keep your best scores, your coins, your characters, your settings, what is known of your agents and, if you joined the ranking, your nickname and the secret that tells the server your runs are yours. |
+| `storage:own` | To keep your best scores, your coins, your characters, your settings, what is known of your agents, the record of your best run of the week not yet on the ranking and, if you joined the ranking, your nickname and the secret that tells the server your runs are yours. |
 
 A trusted worker runs with your user account's access, so here is everything it does outside
 Orca's plugin API:

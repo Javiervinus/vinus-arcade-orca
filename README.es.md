@@ -80,7 +80,9 @@ Lleva a un pequeño agente entre las estanterías de una oficina al anochecer.
 **Ranking**, en la tarjeta, muestra las diez mejores partidas de cada juego de esta semana (de
 lunes a domingo, en UTC) y de siempre. Para estar en él, elige ahí un apodo; desde entonces se
 envía cada partida que supere tu mejor puntaje de la semana, y la tarjeta te dice tu puesto al
-terminar. Puedes cambiar el apodo o salir: al salir se borran del servidor tu apodo y todos tus
+terminar. Tu mejor partida de la semana antes de entrar no se pierde: espera en tu computadora,
+el ranking te muestra dónde quedaría y entra con tu apodo. Una partida que no pudo llegar al
+servidor espera igual, y entra la próxima vez que juegues o abras el ranking. Puedes cambiar el apodo o salir: al salir se borran del servidor tu apodo y todos tus
 puntajes. Desinstalar el plugin no te saca del ranking: tus puntajes quedan y, sin los datos del
 plugin, ya no puedes borrarlos; si quieres que desaparezcan, sal del ranking antes.
 
@@ -118,7 +120,7 @@ Necesita la app de escritorio de Orca, 1.4.248 o más nueva.
 | `agent:read` | Para enterarse de que un agente empieza a trabajar, espera, se bloquea o termina. |
 | `workspace:read` | Para leer el nombre y la carpeta del proyecto de tus workspaces, para las placas y los avisos. |
 | `workspace:write` | Para mostrar el workspace del agente al que decidiste ir. |
-| `storage:own` | Para guardar tus récords, tus monedas, tus personajes, tus ajustes, lo que se sabe de tus agentes y, si entraste al ranking, tu apodo y el secreto que le dice al servidor que tus partidas son tuyas. |
+| `storage:own` | Para guardar tus récords, tus monedas, tus personajes, tus ajustes, lo que se sabe de tus agentes, el registro de tu mejor partida de la semana que aún no está en el ranking y, si entraste al ranking, tu apodo y el secreto que le dice al servidor que tus partidas son tuyas. |
 
 Un worker de confianza corre con el acceso de tu usuario, así que esto es todo lo que hace fuera
 del API de plugins de Orca:
