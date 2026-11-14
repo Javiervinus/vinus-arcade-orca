@@ -179,13 +179,90 @@ const COUNTED = (score: number) => ({
   }
 })
 
-test('nothing reaches the ranking until the person joins it', async () => {
+test('nothing reaches the ranking until the person joins it: the best run waits at home', async () => {
   const sent = fakeServer({})
   const worker = await mountWorker(main, { host: mockHost() })
   const result = await worker.request('ranking.submit', { game: 'blip', score: 12, record: {} })
-  assert.deepEqual(result, { status: 'skipped' })
+  assert.deepEqual(result, { status: 'held' })
+  // A lower run is not the one to bring in.
+  assert.deepEqual(await worker.request('ranking.submit', { game: 'blip', score: 8, record: {} }), {
+    status: 'skipped'
+  })
   assert.deepEqual(await worker.request('ranking.join', { name: ' ' }), { ok: false, problem: 'name' })
   assert.equal(sent.length, 0)
+  await worker.deactivate()
+})
+
+test('the best run played before joining goes in with the nickname', async () => {
+  const sent = fakeServer({
+    'GET /v1/boards/blip': [
+      { status: 200, body: BOARD },
+      { status: 200, body: BOARD }
+    ],
+    'PUT /v1/me': [{ status: 200, body: { name: 'Ada' } }],
+    'POST /v1/runs': [COUNTED(50)]
+  })
+  const worker = await mountWorker(main, { host: mockHost() })
+  await worker.request('ranking.submit', { game: 'blip', score: 50, record: { r: 50 } })
+  await worker.request('ranking.submit', { game: 'blip', score: 30, record: { r: 30 } })
+  // Looking at the boards before joining sends nothing of the person's, and shows what waits.
+  const before = await worker.request('ranking.read', { game: 'blip' })
+  assert.equal(before.held, 50)
+  assert.equal(before.name, null)
+  assert.equal(sent[0]?.auth, null)
+  await worker.request('ranking.join', { name: 'Ada' })
+  const after = await worker.request('ranking.read', { game: 'blip' })
+  assert.deepEqual([after.name, after.held], ['Ada', null])
+  assert.deepEqual(
+    sent.map((request) => `${request.method} ${request.path}`),
+    ['GET /v1/boards/blip', 'PUT /v1/me', 'POST /v1/runs', 'GET /v1/boards/blip']
+  )
+  assert.deepEqual(sent[2]?.body, { game: 'blip', record: { r: 50 } })
+  await worker.deactivate()
+})
+
+test('a run the server could not be reached for goes in later, and one it turned down does not', async () => {
+  const sent = fakeServer({
+    'PUT /v1/me': [{ status: 200, body: { name: 'Ada' } }],
+    'POST /v1/runs': [
+      { status: 503, body: { error: 'server' } },
+      COUNTED(40),
+      { status: 200, body: { status: 'refused', reason: 'other rules' } }
+    ],
+    'GET /v1/boards/blip': [
+      { status: 200, body: BOARD },
+      { status: 200, body: BOARD }
+    ]
+  })
+  const worker = await mountWorker(main, { host: mockHost() })
+  await worker.request('ranking.join', { name: 'Ada' })
+  assert.deepEqual(await worker.request('ranking.submit', { game: 'blip', score: 40, record: { r: 40 } }), {
+    status: 'offline'
+  })
+  assert.equal((await worker.request('ranking.read', { game: 'blip' })).held, null)
+  const refused = await worker.request('ranking.submit', { game: 'blip', score: 60, record: { r: 60 } })
+  assert.deepEqual(refused, { status: 'refused', reason: 'other rules' })
+  assert.equal((await worker.request('ranking.read', { game: 'blip' })).held, null)
+  assert.deepEqual(
+    sent.map((request) => `${request.method} ${request.path}`),
+    ['PUT /v1/me', 'POST /v1/runs', 'POST /v1/runs', 'GET /v1/boards/blip', 'POST /v1/runs', 'GET /v1/boards/blip']
+  )
+  assert.deepEqual(sent[2]?.body, { game: 'blip', record: { r: 40 } })
+  await worker.deactivate()
+})
+
+test('leaving lets go of a run that was still to be sent', async () => {
+  fakeServer({
+    'PUT /v1/me': [{ status: 200, body: { name: 'Ada' } }],
+    'POST /v1/runs': [{ status: 503, body: { error: 'server' } }],
+    'DELETE /v1/me': [{ status: 204, body: null }],
+    'GET /v1/boards/blip': [{ status: 200, body: BOARD }]
+  })
+  const worker = await mountWorker(main, { host: mockHost() })
+  await worker.request('ranking.join', { name: 'Ada' })
+  await worker.request('ranking.submit', { game: 'blip', score: 40, record: {} })
+  await worker.request('ranking.leave')
+  assert.equal((await worker.request('ranking.read', { game: 'blip' })).held, null)
   await worker.deactivate()
 })
 
@@ -250,6 +327,6 @@ test('a server out of reach leaves the games playing', async () => {
   }
   const worker = await mountWorker(main, { host: mockHost() })
   assert.deepEqual(await worker.request('ranking.join', { name: 'Ada' }), { ok: false, problem: 'offline' })
-  assert.deepEqual(await worker.request('ranking.read', { game: 'blip' }), { name: null, board: null })
+  assert.deepEqual(await worker.request('ranking.read', { game: 'blip' }), { name: null, board: null, held: null })
   await worker.deactivate()
 })

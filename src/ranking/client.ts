@@ -2,7 +2,8 @@
 // person who joined: until they choose a nickname nothing is sent. What it sends is that
 // nickname, the record of a run and a secret that tells the server it is the same player; the
 // person's projects and agents never leave their computer.
-import type { Board, RunSubmission, RunVerdict, Standing } from './api'
+import type { JsonValue } from 'orca'
+import { weekOf, type Board, type RunSubmission, type RunVerdict, type Standing } from './api'
 
 export const RANKING = {
   /** The ranking's server: server/ in this repository, on Cloudflare. */
@@ -12,6 +13,9 @@ export const RANKING = {
   maxRequestsPerRun: 80,
   secretBytes: 32
 } as const
+
+/** Why a run was let go after flying it again took more requests than a run may take. */
+export const TOO_LONG = 'replay took too long'
 
 /** The storage key the worker alone writes: who the person is in the ranking. */
 export const PLAYER_KEY = 'ranking'
@@ -33,6 +37,37 @@ export function parsePlayer(value: unknown): Player | null {
   return { secret: stored.secret, name: stored.name, weekBest }
 }
 
+/** The storage key the worker alone writes: the best run of the week of each game that has not
+ *  reached the ranking yet, because the person had not joined or the server could not be
+ *  reached. It stays on this computer until it is sent. */
+export const HELD_KEY = 'heldRuns'
+
+export type HeldRun = { period: string; endsAt: number; score: number; record: JsonValue }
+export type HeldRuns = Record<string, HeldRun>
+
+/** The runs held, without those of a week gone by: they would count in no week. */
+export function parseHeld(value: unknown, now: number): HeldRuns {
+  const held: HeldRuns = {}
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return held
+  for (const [game, run] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof run !== 'object' || run === null) continue
+    const { period, endsAt, score, record } = run as Partial<HeldRun>
+    if (typeof period !== 'string' || typeof endsAt !== 'number' || typeof score !== 'number') continue
+    if (record === undefined || now >= endsAt) continue
+    held[game] = { period, endsAt, score, record }
+  }
+  return held
+}
+
+/** Holds a run that just ended when it is the best of the week not sent. Returns whether it did. */
+export function holdRun(held: HeldRuns, game: string, score: number, record: JsonValue, now: number): boolean {
+  if (score <= 0) return false
+  const current = held[game]
+  if (current && current.score >= score) return false
+  held[game] = { ...weekOf(now), score, record }
+  return true
+}
+
 export function newSecret(): string {
   const bytes = new Uint8Array(RANKING.secretBytes)
   crypto.getRandomValues(bytes)
@@ -46,12 +81,15 @@ export function newSecret(): string {
 export interface RankingView {
   name: string | null
   board: Board | null
+  /** The score of the game's run held on this computer, waiting to be sent; null without one. */
+  held: number | null
 }
 
 export type JoinResult = { ok: true; name: string } | { ok: false; problem: 'name' | 'soon' | 'offline' }
 
-/** What became of a run: `skipped` when there was no need to send it. */
-export type SubmitResult = RunVerdict | { status: 'skipped' } | { status: 'offline' }
+/** What became of a run: `skipped` when there was no need to send it, `held` when it waits on
+ *  this computer for the person to join. A run the server could not be reached for waits too. */
+export type SubmitResult = RunVerdict | { status: 'skipped' } | { status: 'held' } | { status: 'offline' }
 
 /** Why the server would not do what it was asked. */
 export class RankingError extends Error {
@@ -87,7 +125,7 @@ export class RankingClient {
     for (let i = 1; verdict.status === 'checking' && i < RANKING.maxRequestsPerRun; i += 1) {
       verdict = await this.call<RunVerdict>('POST', `/v1/runs/${verdict.run}`, player)
     }
-    if (verdict.status === 'checking') throw new RankingError(0, 'replay took too long')
+    if (verdict.status === 'checking') throw new RankingError(0, TOO_LONG)
     return verdict
   }
 
