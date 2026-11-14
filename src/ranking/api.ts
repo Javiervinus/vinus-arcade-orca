@@ -4,6 +4,22 @@
 /** How many players each board shows. */
 export const TOP_PLAYERS = 10
 
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** The week of a moment, Monday to Sunday in UTC, named as ISO 8601 names it. */
+export function weekOf(now: number): { period: string; endsAt: number } {
+  const date = new Date(now)
+  const sinceMonday = (date.getUTCDay() + 6) % 7
+  const monday = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - sinceMonday)
+  const thursday = new Date(monday + 3 * DAY_MS)
+  const yearStart = Date.UTC(thursday.getUTCFullYear(), 0, 1)
+  const week = Math.floor((thursday.getTime() - yearStart) / DAY_MS / 7) + 1
+  return {
+    period: `${thursday.getUTCFullYear()}-W${String(week).padStart(2, '0')}`,
+    endsAt: monday + 7 * DAY_MS
+  }
+}
+
 /** A nickname: letters and numbers of any language, and a few marks between them. */
 export const NICKNAME = {
   min: 2,
