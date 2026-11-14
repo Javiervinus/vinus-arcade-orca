@@ -2,7 +2,7 @@
 
 What changes in each version of Vinus Arcade. Versions follow [semantic versioning](https://semver.org).
 
-## Unreleased
+## 0.3.1 (2026-11-14)
 
 - **Your best run before joining the ranking counts**: it waits on your computer until you pick a
   nickname, the ranking shows where it would land, and it goes in with you. A run the server could

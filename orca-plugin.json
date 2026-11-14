@@ -2,7 +2,7 @@
   "manifestVersion": 2,
   "id": "vinus-arcade",
   "name": "Vinus Arcade",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Pixel art games for the wait between agents, in an office that is yours: your projects hang on the wall, your agents sit at the desks and call you when they need you, and a world ranking crowns the best runs of the week. Blip is the first game; more are on the way. Your projects and agents never leave your computer: only a nickname and your runs do, and only if you join the ranking.",
   "author": {
     "name": "Javier Vinueza",
