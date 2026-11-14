@@ -93,6 +93,7 @@ const cardNote = element<HTMLParagraphElement>('card-note')
 const cardSub = element<HTMLParagraphElement>('card-sub')
 const cardNews = element<HTMLParagraphElement>('card-news')
 const cardRank = element<HTMLParagraphElement>('card-rank')
+const cardInvite = element<HTMLButtonElement>('card-invite')
 const cardHint = element<HTMLParagraphElement>('card-hint')
 const wardrobeButton = element<HTMLButtonElement>('wardrobe-open')
 const wardrobePreview = element<HTMLCanvasElement>('wardrobe-preview')
@@ -146,6 +147,9 @@ let newBest = false
 let news = ''
 /** Where the run that just ended put the person in the world ranking; empty until it counts. */
 let rankLine = ''
+/** Whether the run that just ended is a new best held for a person who has not joined the
+ *  ranking: the card asks them to see where it would land. */
+let invite = false
 /** Whether what the person saved has been read: the card waits for it, so it never shows in a
  *  language and then changes. */
 let loaded = false
@@ -266,6 +270,7 @@ function showCard(): void {
   cardNews.hidden = news === ''
   cardRank.textContent = rankLine
   cardRank.hidden = rankLine === '' || !over
+  cardInvite.hidden = !(over && invite)
   cardHint.textContent = paused ? strings.resume : over ? strings.retry : texts.start
   const worn = wearing()
   paintLook(wardrobePreview, worn.skin, worn.accessory)
@@ -322,14 +327,23 @@ async function sendRun(): Promise<void> {
       { timeoutMs: VIEW.submitTimeoutMs }
     )
     if (result.status === 'refused' && result.reason === 'not in the ranking') ranking.forget()
+    // A new run may have begun meanwhile: what the card says belongs to the run it was about.
+    const current = session.phase === sent
+    if (result.status === 'held') {
+      // A new best kept for a person who has not joined: the moment to show them the board.
+      if (!current || !newBest) return
+      invite = true
+      showCard()
+      return
+    }
     if (result.status !== 'counted') return
     ranking.reload()
-    // Only the run that is the person's best of the week moves them on the board.
-    if (result.week.score !== result.score) return
+    // Only the run that is the person's best of the week moves them on the board, and the
+    // server may have counted another one, held from before.
+    if (result.score !== proof.score || result.week.score !== result.score) return
     const places = [fill(strings.rankingCardWeek, { rank: result.week.rank })]
     if (result.all.score === result.score) places.push(fill(strings.rankingCardAll, { rank: result.all.rank }))
-    // A new run may have begun meanwhile: the line belongs to the card of the run it was about.
-    if (session.phase !== sent) return
+    if (!current) return
     rankLine = places.join(' · ')
     showCard()
   } catch (error) {
@@ -412,6 +426,7 @@ function act(): void {
   sound.unlock()
   news = ''
   rankLine = ''
+  invite = false
   if (paused) {
     setPaused(false)
     return
@@ -542,7 +557,8 @@ const ranking = new RankingSheet(
   strings,
   {
     game: () => ({ id: definition.id, name: definition.name }),
-    read: (game) => orca.plugin.request('ranking.read', { game }),
+    // Reading the boards first sends a run held for the person, which may take a while.
+    read: (game) => orca.plugin.request('ranking.read', { game }, { timeoutMs: VIEW.submitTimeoutMs }),
     join: (name) => orca.plugin.request('ranking.join', { name }),
     leave: () => orca.plugin.request('ranking.leave')
   }
@@ -572,6 +588,7 @@ function applyTexts(): void {
   gamesClose.textContent = strings.dismiss
   showButton(gamesButton, PIXEL_ICONS.games, strings.games, strings.games)
   showButton(rankingButton, PIXEL_ICONS.ranking, strings.ranking, strings.rankingTitle)
+  showButton(cardInvite, PIXEL_ICONS.ranking, strings.rankingInvite, strings.rankingInvite)
   rankingClose.textContent = strings.dismiss
   noticeGo.textContent = strings.goToAgent
   noticeClose.textContent = strings.dismiss
@@ -805,6 +822,11 @@ rankingButton.addEventListener('click', () => {
   rankingClose.focus()
 })
 rankingClose.addEventListener('click', closeSheets)
+cardInvite.addEventListener('click', () => {
+  sound.unlock()
+  ranking.show(true)
+  rankingClose.focus()
+})
 soundButton.addEventListener('click', () => {
   setSound(!sound.enabled)
   stage.focus()

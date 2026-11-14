@@ -13,6 +13,13 @@ const LOOK = {
 
 const HOUR_MS = 60 * 60 * 1000
 
+/** Where a score not on the board yet would stand on it: after every score as high, since the
+ *  first to reach a score keeps the place. Null when it would fall below the board. */
+export function placeOf(top: readonly BoardEntry[], score: number): number | null {
+  const ahead = top.filter((entry) => entry.score >= score).length
+  return ahead < TOP_PLAYERS ? ahead + 1 : null
+}
+
 export interface RankingActions {
   /** The game whose boards are shown. */
   game(): { id: string; name: string }
@@ -58,6 +65,10 @@ export class RankingSheet {
   private message = ''
   private renaming = false
   private leaveTimer = 0
+  /** The held score the person joined with, until the boards say whether it went in. */
+  private joinedWith: number | null = null
+  /** Whether the nickname box takes the focus once it shows: the person came to join. */
+  private toJoin = false
 
   constructor(
     private readonly parts: RankingParts,
@@ -85,10 +96,12 @@ export class RankingSheet {
     return !this.parts.root.hidden
   }
 
-  show(): void {
+  /** Opens the window; `toJoin` when the person came from the card to put their run on it. */
+  show(toJoin = false): void {
     this.parts.root.hidden = false
     this.message = ''
     this.renaming = false
+    this.toJoin = toJoin
     this.refresh()
     void this.load()
   }
@@ -117,7 +130,7 @@ export class RankingSheet {
     parts.all.textContent = strings.rankingAll
     parts.week.setAttribute('aria-selected', String(this.tab === 'week'))
     parts.all.setAttribute('aria-selected', String(this.tab === 'all'))
-    parts.pitch.textContent = strings.rankingPitch
+    parts.pitch.textContent = this.pitch()
     parts.name.placeholder = strings.rankingPlaceholder
     parts.join.textContent = this.renaming ? strings.rankingSave : strings.rankingJoin
     parts.privacy.textContent = strings.rankingPrivacy
@@ -136,20 +149,49 @@ export class RankingSheet {
     parts.form.hidden = this.view === null || (name !== null && !this.renaming)
     parts.pitch.hidden = this.renaming
     parts.privacy.hidden = this.renaming
+    const held = this.view?.held ?? null
     parts.status.textContent = this.loading
       ? strings.rankingLoading
       : this.view && !board
         ? strings.rankingOffline
-        : this.message
+        : name !== null && held !== null
+          ? fill(strings.rankingHeldWaiting, { score: held })
+          : this.message
     parts.status.hidden = parts.status.textContent === ''
+  }
+
+  /** The score held on this computer, for a person who has not joined: it is what they would
+   *  bring in with a nickname. */
+  private waiting(): number | null {
+    return this.view && this.view.name === null ? this.view.held : null
+  }
+
+  /** How the window asks for a nickname: with the person's own run and where it would land,
+   *  when there is one. */
+  private pitch(): string {
+    const { strings } = this
+    const score = this.waiting()
+    if (score === null) return strings.rankingPitch
+    const side = this.view?.board?.[this.tab]
+    const rank = side ? placeOf(side.top, score) : null
+    if (rank === null) return fill(strings.rankingPitchHeld, { score })
+    return fill(this.tab === 'week' ? strings.rankingPitchWeek : strings.rankingPitchAll, { score, rank })
   }
 
   private showList(board: Board | null): void {
     const { parts, strings } = this
     const side = board ? board[this.tab] : null
-    const rows: HTMLLIElement[] = []
-    for (const entry of side?.top ?? []) rows.push(this.row(entry))
-    if (side && side.top.length === 0) {
+    const score = this.waiting()
+    const rank = side && score !== null ? placeOf(side.top, score) : null
+    const rows = (side?.top ?? []).map((entry) =>
+      this.row(rank !== null && entry.rank >= rank ? { ...entry, rank: entry.rank + 1 } : entry)
+    )
+    // The person's own run, in the place it would take, and the board below it one place down.
+    if (rank !== null && score !== null) {
+      rows.splice(rank - 1, 0, this.ghost(rank, score))
+      rows.length = Math.min(rows.length, TOP_PLAYERS)
+    }
+    if (side && rows.length === 0) {
       const empty = document.createElement('li')
       empty.className = 'rank-empty'
       empty.textContent = strings.rankingEmpty
@@ -162,6 +204,13 @@ export class RankingSheet {
     parts.me.textContent =
       me && !shown && me.rank > TOP_PLAYERS ? fill(strings.rankingYou, { rank: me.rank, score: me.score }) : ''
     parts.me.hidden = parts.me.textContent === ''
+  }
+
+  /** The row of a run that is not on the board yet. */
+  private ghost(rank: number, score: number): HTMLLIElement {
+    const item = this.row({ rank, score, name: this.strings.rankingGhost, me: true })
+    item.classList.add('ghost')
+    return item
   }
 
   private row(entry: BoardEntry): HTMLLIElement {
@@ -191,10 +240,21 @@ export class RankingSheet {
     try {
       this.view = await this.actions.read(this.actions.game().id)
     } catch {
-      this.view = { name: this.view?.name ?? null, board: null }
+      this.view = { name: this.view?.name ?? null, board: null, held: this.view?.held ?? null }
     }
     this.loading = false
+    if (this.joinedWith !== null) {
+      // The run held went in with the nickname when the board has it; if it still waits, the
+      // window says so on its own.
+      const counted = (this.view.board?.week.me?.score ?? 0) >= this.joinedWith
+      if (counted) this.message = fill(this.strings.rankingInWith, { score: this.joinedWith })
+      this.joinedWith = null
+    }
     this.refresh()
+    if (this.toJoin && !this.parts.form.hidden) {
+      this.toJoin = false
+      this.parts.name.focus()
+    }
   }
 
   private async submitName(): Promise<void> {
@@ -204,9 +264,11 @@ export class RankingSheet {
       const result = await this.actions.join(parts.name.value)
       if (result.ok) {
         const joining = this.view?.name == null
-        this.view = { name: result.name, board: this.view?.board ?? null }
+        const held = this.view?.held ?? null
+        this.view = { name: result.name, board: this.view?.board ?? null, held }
         this.renaming = false
         this.message = joining ? strings.rankingFromNow : ''
+        this.joinedWith = joining ? held : null
         parts.name.value = ''
         void this.load()
       } else {
@@ -241,7 +303,7 @@ export class RankingSheet {
     try {
       const { left } = await this.actions.leave()
       if (left) {
-        this.view = { name: null, board: this.view?.board ?? null }
+        this.view = { name: null, board: this.view?.board ?? null, held: null }
         this.message = strings.rankingLeft
         void this.load()
       } else {

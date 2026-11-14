@@ -129,6 +129,19 @@
         letter-spacing: 0.04em;
       }
 
+      /* A new best of someone not on the ranking yet: the way to see where it would land. */
+      #card-invite {
+        pointer-events: auto;
+        border-color: var(--arcade-gold);
+        color: var(--arcade-gold);
+        font-weight: 700;
+        letter-spacing: 0.04em;
+      }
+      #card-invite:hover {
+        border-color: var(--arcade-gold);
+        background: color-mix(in srgb, var(--arcade-gold) 14%, var(--arcade-night));
+      }
+
       #card-actions {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -447,6 +460,12 @@
         color: var(--arcade-gold);
         font-weight: 700;
       }
+      /* The person's own run, in the place it would take once they join. */
+      .rank-row.ghost {
+        outline: 1px dashed var(--arcade-gold);
+        outline-offset: -1px;
+        background: color-mix(in srgb, var(--arcade-gold) 10%, transparent);
+      }
       .rank-place {
         flex: none;
         min-width: 2ch;
@@ -622,6 +641,9 @@
         <p id="card-sub" hidden></p>
         <p id="card-news" hidden></p>
         <p id="card-rank" hidden></p>
+        <button id="card-invite" class="plate toggle" type="button" hidden>
+          <span class="glyph"></span><span class="label"></span>
+        </button>
         <p id="card-hint"></p>
         <div id="card-actions">
           <button id="wardrobe-open" class="plate" type="button">

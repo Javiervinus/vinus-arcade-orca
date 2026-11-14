@@ -74,6 +74,13 @@ const EN = {
   rankingOffline: 'The ranking cannot be reached right now.',
   rankingLoading: 'Loading…',
   rankingFromNow: 'You are in. Your runs count from now on.',
+  rankingPitchWeek: 'Your {score} would be #{rank} this week. Pick a nickname to put it there.',
+  rankingPitchAll: 'Your {score} would be #{rank} of all time. Pick a nickname to put it there.',
+  rankingPitchHeld: 'Your {score} is waiting. Pick a nickname to put it on the world ranking.',
+  rankingGhost: 'You?',
+  rankingInWith: 'You are in, and your {score} went in with you.',
+  rankingHeldWaiting: 'Your {score} goes in as soon as the ranking can be reached.',
+  rankingInvite: 'See where it lands',
   rankingCardWeek: '#{rank} of the week',
   rankingCardAll: '#{rank} of all time'
 }
@@ -151,6 +158,13 @@ const ES: typeof EN = {
   rankingOffline: 'No se puede llegar al ranking ahora mismo.',
   rankingLoading: 'Cargando…',
   rankingFromNow: 'Ya estás dentro. Tus partidas cuentan desde ahora.',
+  rankingPitchWeek: 'Tu {score} quedaría #{rank} esta semana. Elige un apodo para ponerlo ahí.',
+  rankingPitchAll: 'Tu {score} quedaría #{rank} en el histórico. Elige un apodo para ponerlo ahí.',
+  rankingPitchHeld: 'Tu {score} te espera. Elige un apodo para ponerlo en el ranking mundial.',
+  rankingGhost: '¿Tú?',
+  rankingInWith: 'Ya estás dentro, y tu {score} entró contigo.',
+  rankingHeldWaiting: 'Tu {score} entra en cuanto se pueda llegar al ranking.',
+  rankingInvite: 'Mira dónde quedas',
   rankingCardWeek: '#{rank} de la semana',
   rankingCardAll: '#{rank} histórico'
 }
